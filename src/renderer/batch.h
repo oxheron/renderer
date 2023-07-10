@@ -88,6 +88,12 @@ private:
 
     // A uniform to send the draw parameters to the compute shader
     bgfx::UniformHandle draw_params;
+
+    // Some parameters to tell the update function how the buffers should be updated
+    size_t start_update;
+    size_t end_update;
+    bool refresh;
+
 public:
     Batch();
     explicit Batch(size_t size, const std::string& compute_path, const bgfx::VertexLayout& vertex_layout, const bgfx::VertexLayout& model_layout);
@@ -110,6 +116,7 @@ public:
     // Change/add a compute progam 
     void set_compute_program(const std::string& compute_path);
 private:
+    // Do all updates to the objs data and model data
     // Update the batch renderer
     // Run the compute shader (if needed)
     void update();

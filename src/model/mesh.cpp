@@ -50,7 +50,6 @@ void StandardMesh::load_model(const std::string& path)
 void StandardMesh::load_texture(const std::string& path)
 {
     this->texture_id = br->load_texture(path);
-    std::cout << this->texture_id << std::endl;
 }
 
 void StandardMesh::set_batchmanager(BatchManager* br)
@@ -83,7 +82,6 @@ Buffer<uint8_t> StandardMesh::get_model_buffer()
     memcpy((void*) model_buffer.data(), (void*) glm::value_ptr(modelmat), 16 * sizeof(float));
     float* tex_id = (float*) (model_buffer.data() + 16 * sizeof(float));
     *tex_id = (float) texture_id;
-    std::cout << *tex_id << std::endl;
     return Buffer(model_buffer.data(), model_buffer.size());
 }
 

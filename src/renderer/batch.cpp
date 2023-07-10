@@ -12,6 +12,7 @@
 #include <bx/bx.h>
 
 // std
+#include <cstdint>
 #include <cstdio>
 #include <utility>
 #include <unordered_map>
@@ -42,6 +43,8 @@ Batch::Batch(size_t size, const std::string& compute_path, const bgfx::VertexLay
     instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 10, model_layout, BGFX_BUFFER_ALLOW_RESIZE);
     draw_params = bgfx::createUniform("draw_params", bgfx::UniformType::Vec4);
     indirect_buffer = BGFX_INVALID_HANDLE;
+    start_update = end_update = SIZE_MAX;
+    refresh = false;
 }
 
 Batch::Batch(Batch&& other) noexcept
@@ -131,8 +134,8 @@ size_t* Batch::add(Mesh* mesh)
         model_data.push_back(mesh->get_model_buffer()[i]);
     }
 
-    bgfx::update(objs_buffer, (uint32_t) (objs_data.size() - 1), bgfx::makeRef(&objs_data.back(), sizeof(ObjIndex)));
-    bgfx::update(instances_buffer, (uint32_t) (objs_data.size() - 1), bgfx::makeRef(&model_data[(objs_data.size() - 1) * model_layout.getStride()], model_layout.getStride()));
+    if (start_update == SIZE_MAX) start_update = objs_data.size() - 1;
+    end_update = objs_data.size();
 
     // No direct storage, update whole draw buffer & instance buffer every frame (will change method if this gets slow)
     update_compute = true;
@@ -147,6 +150,8 @@ void Batch::edit_model_data(Mesh* mesh, size_t* index)
     {
         model_data[*index * model_layout.getStride() + i] = mesh->get_model_buffer()[i];
     }
+
+    // Update function
 }
 
 void Batch::edit_indirect(Mesh* mesh, size_t* index)
@@ -154,6 +159,8 @@ void Batch::edit_indirect(Mesh* mesh, size_t* index)
     objs_data[*index].index_start = index_starts[*index] + mesh->animation_start();
     objs_data[*index].index_count = mesh->animation_length();
     update_compute = true;
+
+    // Update function
 }
 
 void Batch::edit(Mesh* mesh, size_t* index)
@@ -171,7 +178,6 @@ void Batch::draw(bgfx::ProgramHandle rendering_program)
     update();
     if (!isValid(indirect_buffer)) return;
 
-    // bgfx::update(instances_buffer, 0, bgfx::makeRef(model_data.data(), model_data.size()));
     bgfx::setVertexBuffer(0, vbh);
     bgfx::setIndexBuffer(ibh);
     bgfx::setInstanceDataBuffer(instances_buffer, 0, objs_data.size());
@@ -188,11 +194,23 @@ void Batch::update()
 {
     if (!isValid(compute_program)) return;
 
+    if (start_update != end_update && !refresh) 
+    { 
+        std::cout << start_update << " " << end_update << std::endl;
+        bgfx::update(instances_buffer, (uint32_t) start_update, bgfx::makeRef(&model_data[start_update * model_layout.getStride()], (end_update - start_update) * model_layout.getStride()));
+        bgfx::update(objs_buffer, (uint32_t) start_update, bgfx::makeRef(&objs_data[start_update], (end_update - start_update) * sizeof(ObjIndex)));
+    }
+
+    if (refresh)
+    {
+        bgfx::update(instances_buffer, 0, bgfx::makeRef(model_data.data(), model_data.size()));
+        bgfx::update(objs_buffer, 0, bgfx::makeRef(objs_data.data(), objs_data.size() * sizeof(ObjIndex)));
+    }
+
     if (update_compute)
     {
         if (isValid(indirect_buffer)) bgfx::destroy(indirect_buffer);
         indirect_buffer = bgfx::createIndirectBuffer(objs_data.size());
-        bgfx::update(objs_buffer, 0, bgfx::makeRef(objs_data.data(), objs_data.size() * sizeof(ObjIndex)));
         float draw_data[4] = {float(objs_data.size()), 0, 0, 0};
         bgfx::setUniform(draw_params, draw_data);
         bgfx::setBuffer(0, objs_buffer, bgfx::Access::Read);
@@ -200,6 +218,8 @@ void Batch::update()
         bgfx::dispatch(0, compute_program, uint32_t(objs_data.size()/64 + 1), 1, 1);
         update_compute = false;
     }
+    
+    start_update = end_update = SIZE_MAX;
 }
 
 std::pair<size_t, size_t> Batch::get_start_in_buffers(size_t num_vertices, size_t num_indices)
