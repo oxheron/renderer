@@ -83,5 +83,6 @@
 		"*.inc": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "disabled",
-	"cmake.sourceDirectory": "/devel/engine/lib/glfw/docs"
+	"cmake.sourceDirectory": "/devel/engine/lib/glfw/docs",
+	"githubPullRequests.ignoredPullRequestBranches": ["master"]
 }

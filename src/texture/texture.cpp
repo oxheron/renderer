@@ -21,7 +21,7 @@ Texture::Texture(const std::string& filepath)
 void Texture::load_image(const std::string& filepath)
 {
     raw_data = read_file_raw(filepath);
-    image_container = bimg::imageParse(global.allocator, raw_data->data, raw_data->size);
+    image_container = bimg::imageParse(global->allocator, raw_data->data, raw_data->size);
 }
 
 static void img_free(void*, void* img_container)
@@ -34,7 +34,7 @@ void Texture::create_handle(uint64_t flags)
     if(!bgfx::isTextureValid(0, false, image_container->m_numLayers, bgfx::TextureFormat::Enum(image_container->m_format), flags)) return;
     texture_handle = bgfx::createTexture2D(image_container->m_width, image_container->m_height, 1 < image_container->m_numMips, image_container->m_numLayers, bgfx::TextureFormat::Enum(image_container->m_format), flags, bgfx::makeRef(
 					  image_container->m_data, image_container->m_size, img_free, image_container));
-    bx::free(global.allocator, raw_data);
+    bx::free(global->allocator, raw_data);
     valid_handle = true;
 }
 

@@ -55,6 +55,9 @@ shaders:
 run:
 	./$(BIN)/$(TARGET_EXEC) 
 
+debug:
+	lldb ./$(BIN)/$(TARGET_EXEC)
+
 clean:
 	clear
 	rm -rf $(BIN) $(OBJ)

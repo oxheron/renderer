@@ -6,18 +6,10 @@
 StandardMesh::StandardMesh()
 {
     // Potentially allow customizable layouts
-    layout.begin()
-        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-        .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
-        .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-        .end();
 }
 
 StandardMesh::~StandardMesh()
 {
-    bgfx::destroy(vbh);
-    bgfx::destroy(ibh);
-    texture.destroy();
     delete[] vertices;
     cgltf_free(data);
 }
@@ -57,33 +49,50 @@ void StandardMesh::load_model(const std::string& path)
 
 void StandardMesh::load_texture(const std::string& path)
 {
-    texture.load_image(path);
-    texture.create_handle();
-    texture.create_sampler();
+    this->texture_id = br->load_texture(path);
+    std::cout << this->texture_id << std::endl;
 }
 
-void StandardMesh::set_handles()
+void StandardMesh::set_batchmanager(BatchManager* br)
 {
-    vbh = bgfx::createVertexBuffer(bgfx::makeRef(vertices, sizeof(Vertex) * vertices_size), layout);
-    ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(uint16_t) * indices_size));
-}
-
-// For now, all this does is draw the buffer
-// In the future, this will be used to handle model matrix and more
-void StandardMesh::draw(bgfx::ProgramHandle& prg_handle)
-{
-    bgfx::setTransform(glm::value_ptr(modelmat));
-    bgfx::setVertexBuffer(0, vbh);
-    bgfx::setIndexBuffer(ibh);
-    bgfx::setTexture(0, texture.get_sampler(), texture.get_handle());
-    bgfx::setState(BGFX_STATE_DEFAULT);
-    bgfx::submit(0, prg_handle);
+    this->br = br;
 }
 
 // Set the model matrix
 // This is used to transform the mesh
 // For particle meshes this could be used to set the overall position but there may be multiple
+// Also edit the value in the batch
 void StandardMesh::set_modelmat(const glm::mat4& mat)
 {
     modelmat = mat;
+    if (batch) batch->edit_model_data(this, index);
+}
+
+void StandardMesh::upload()
+{
+    // Load to batch renderer
+    auto [batch, index] = br->add(this);
+    this->batch = batch;
+    this->index = index;
+}
+
+Buffer<uint8_t> StandardMesh::get_model_buffer()
+{
+    // Make sure the stride is a multiple of 16 (20 in this case)
+    if (model_buffer.size() == 0) model_buffer.resize(16 * sizeof(float) + sizeof(float) * 4);
+    memcpy((void*) model_buffer.data(), (void*) glm::value_ptr(modelmat), 16 * sizeof(float));
+    float* tex_id = (float*) (model_buffer.data() + 16 * sizeof(float));
+    *tex_id = (float) texture_id;
+    std::cout << *tex_id << std::endl;
+    return Buffer(model_buffer.data(), model_buffer.size());
+}
+
+Buffer<uint8_t> StandardMesh::get_vertex_buffer()
+{
+    return Buffer((uint8_t*) vertices, vertices_size * sizeof(Vertex));
+}
+
+Buffer<uint8_t> StandardMesh::get_index_buffer()
+{
+    return Buffer((uint8_t*) indices, indices_size * sizeof(uint16_t));
 }

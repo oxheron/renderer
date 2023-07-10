@@ -21,3 +21,6 @@ void* get_native_window();
 
 // The native display handle
 void* get_native_display();
+
+// The glfw window handle
+void* get_window();

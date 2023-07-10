@@ -72,3 +72,8 @@ void* get_native_display()
 #endif
     return nullptr;
 }
+
+void* get_window()
+{
+    return (void*) window;
+}

@@ -2,17 +2,20 @@
 
 // internal
 #include "core/window.h"
-#include "global.h"
 
-BGFXHandler::BGFXHandler(void* window, void* display, int width, int height, bgfx::RendererType::Enum type)
+// external
+#include <bx/allocator.h>
+
+BGFXHandler::BGFXHandler(void* window, void* display, int width, int height, bx::AllocatorI* allocator, bgfx::RendererType::Enum type)
 {
     bgfx::PlatformData pd;
     pd.nwh = window;
     pd.ndt = display;
-    init(pd, width, height, type);
+    if (!allocator) allocator = new bx::DefaultAllocator();
+    init(pd, width, height, allocator, type);
 }
 
-void BGFXHandler::init(const bgfx::PlatformData& pd, int width, int height, bgfx::RendererType::Enum type)
+void BGFXHandler::init(const bgfx::PlatformData& pd, int width, int height, bx::AllocatorI* allocator, bgfx::RendererType::Enum type)
 {
     bgfx::Init bgfxInit;
     bgfxInit.type = type;
@@ -20,7 +23,7 @@ void BGFXHandler::init(const bgfx::PlatformData& pd, int width, int height, bgfx
     bgfxInit.resolution.height = height;
     bgfxInit.resolution.reset = BGFX_RESET_NONE;
     bgfxInit.platformData = pd;
-    bgfxInit.allocator = global.allocator;
+    bgfxInit.allocator = allocator;
     bgfx::init(bgfxInit);
 }
 
