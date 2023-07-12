@@ -8,7 +8,7 @@ BIN = bin
 LIBS = lib/bgfx/.build/linux64_gcc/bin/libbgfxDebug.a lib/bgfx/.build/linux64_gcc/bin/libbxDebug.a lib/bgfx/.build/linux64_gcc/bin/libbimgDebug.a lib/bgfx/.build/linux64_gcc/bin/libbimg_decodeDebug.a lib/glfw/build/src/libglfw3.a -lGL -lX11 -lpthread -ldl -lrt
 
 INC_DIR_SRC = -Isrc 
-INC_DIR_LIB = -Ilib/bgfx/include -Ilib/bimg/include -Ilib/bx/include -Ilib/glfw/include -Ilib/OBJ-Loader/include -Ilib/cgltf/include -Ilib/glm/include
+INC_DIR_LIB = -Ilib -Ilib/json/single_include -Ilib/bgfx/include -Ilib/bimg/include -Ilib/bx/include -Ilib/glfw/include -Ilib/OBJ-Loader/include -Ilib/cgltf/include -Ilib/glm/include
 
 DEBUGFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIB) -Wall -g
 RELEASEFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIB) -O2

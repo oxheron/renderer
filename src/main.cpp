@@ -46,27 +46,42 @@ int main(void)
     BatchManager manager(2048, 2048, layout, model_layout, "fill_compute.cs");
     manager.set_program("batch_vertex.vs", "batch_fragment.fs");
 
-    StandardMesh mesh;
-    mesh.set_batchmanager(&manager);
-    mesh.load_model("resources/models/cube.gltf");
+    // StandardMesh mesh;
+    // mesh.set_batchmanager(&manager);
+    // mesh.load_model("resources/models/cube.gltf");
     // mesh.load_texture("resources/textures/square_swirls.png");
-    glm::mat4 model = glm::mat4(1.0f);
-    mesh.set_modelmat(model);
-    mesh.upload();
+    // glm::mat4 model = glm::mat4(1.0f);
+    // mesh.set_modelmat(model);
+    // mesh.upload();
+    //
+    // StandardMesh mesh2;
+    // mesh2.set_batchmanager(&manager);
+    // mesh2.load_model("resources/models/cube.gltf");
+    // mesh2.load_texture("resources/textures/square_swirls.png");
+    // model = glm::mat4(1.0f);
+    // model = glm::translate(model, glm::vec3(0.0f, 0.0f, -5.0f));
+    // mesh2.set_modelmat(model);
+    // mesh2.upload();
+    // Batch* batch = mesh.get_batch();
+    // batch->remove(mesh.get_index());
+    // mesh.upload();
 
-    StandardMesh mesh2;
-    mesh2.set_batchmanager(&manager);
-    mesh2.load_model("resources/models/cube.gltf");
-    mesh2.load_texture("resources/textures/square_swirls.png");
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 5.0f));
-    mesh2.set_modelmat(model);
-    mesh2.upload();
+    BaseInstance* mesh = new BaseInstance;
+    mesh->set_batchmanager(&manager);
+    mesh->load_mesh("resources/models/cube.json");
+
+    InstancedModel mesh1(mesh);
+    InstancedModel* mesh2 = new InstancedModel(mesh);
+    mesh1.set_modelmat(glm::mat4(1.0f));
+    mesh2->set_modelmat(glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 0.0f)));
+    mesh1.upload();
+    mesh2->upload();
 
     bgfx::touch(0);
 
     Camera camera;
 
+    uint32_t frames = 0;
     while(!window_should_close()) 
     {
         if (global->kb[GLFW_KEY_W].held) camera.movez(0.000000001 * global->tm.get_delta_time().count());
@@ -92,14 +107,16 @@ int main(void)
 
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float) window_width / (float) window_height, 0.1f, 100.0f);
 		bgfx::setViewTransform(0, glm::value_ptr(camera.get_view()), glm::value_ptr(proj));
-
+        
+        // model = glm::rotate(model, glm::radians(0.1f), glm::vec3(0, 1, 0));
+        // mesh2.set_modelmat(model);
         manager.draw();
         
         bgfx::frame();
         global->tm.hold_at_fps();
         if (global->tm.is_second()) std::cout << global->tm.get_fps() << std::endl;
+        frames++;
     }
 
     return 0;
 }
-  

@@ -2,6 +2,7 @@
 
 // internal
 #include "core/shader.h"
+#include "util/buffer.h"
 
 // external
 #include <bgfx/bgfx.h>
@@ -12,8 +13,8 @@
 #include <utility>
 #include <unordered_map>
 
-// Forward declaration of Mesh
-class Mesh;
+// Forward declaration of Model
+class Model;
 
 // Struct & layout for storing indirect draw call data on the cpu
 struct ObjIndex 
@@ -22,6 +23,8 @@ struct ObjIndex
 	float vertex_count;
 	float index_start;
 	float index_count;  
+
+    ObjIndex(float vs, float vc, float is, float ic) : vertex_start(vs), vertex_count(vc), index_start(is), index_count(ic) { }
 
     static bgfx::VertexLayout layout()
     {
@@ -52,11 +55,9 @@ private:
     // Contains vertex & index offsets and counts
     std::vector<ObjIndex> objs_data;
 
-    // The true starting value and size of each index buffer in objs data, 
-    // because the ones in objs_data also have the animation offset, 
-    // which should't be accounted for in the offsets for the next model  
-    std::vector<size_t> index_starts;
-    std::vector<size_t> index_counts;
+    // True staring values of vertex and index buffers
+    // Instancing and animations make objs data not always hold the true data for allocation of new buffers
+    std::vector<ObjIndex> allocation_data;
 
     // The model instance data, such as matrices and textures
     // Only used for removal of models, since adding models doesn't require a whole buffer rewrite
@@ -83,8 +84,13 @@ private:
     // Size of batch (in number of vertices)
     size_t size;
 
-    // Every objs_data and model_data indexing pointer
-    std::vector<size_t*> index_pointers;
+    // Instance indexes contain the indexes into the buffers (such as start vertex etc.)
+    // Draw indexes contain the indexes into pretty much everything else
+    // Also the current last index into the map
+    std::unordered_map<size_t, size_t> instance_indexes;
+    std::unordered_map<size_t, size_t> draw_indexes;
+    std::unordered_map<size_t, size_t> draw_to_instance;
+    size_t current_index = 0;
 
     // A uniform to send the draw parameters to the compute shader
     bgfx::UniformHandle draw_params;
@@ -93,7 +99,6 @@ private:
     size_t start_update;
     size_t end_update;
     bool refresh;
-
 public:
     Batch();
     explicit Batch(size_t size, const std::string& compute_path, const bgfx::VertexLayout& vertex_layout, const bgfx::VertexLayout& model_layout);
@@ -104,11 +109,17 @@ public:
     ~Batch();
 
     // Manipulate the data in a batch
-    size_t* add(Mesh* mesh);
-    void edit(Mesh* mesh, size_t* index);
-    void edit_model_data(Mesh* mesh, size_t* index);
-    void edit_indirect(Mesh*, size_t* model_index);
-    void remove(size_t* index);
+    size_t add(Model* model);
+    void edit(Model* model, size_t index);
+    void edit_model_data(Model* model, size_t index);
+    void edit_indirect(Model*, size_t model_index);
+    void remove(size_t index);
+
+    // Instance adding
+    size_t add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer);
+    size_t add_instance(Model* model, size_t instance_index, bool new_index = true);
+    void remove_instance_data(size_t index);
+    void remove_instance(size_t index);
 
     // Texture list should have been bound before
     void draw(bgfx::ProgramHandle rendering_program);
@@ -161,7 +172,7 @@ public:
     BatchManager();
 
     // Image width and height
-    // Maybe at some point layout will be specific to meshes, and the batch will be selected from that? 
+    // Maybe at some point layout will be specific to modeles, and the batch will be selected from that? 
     explicit BatchManager(uint16_t width, uint16_t height, bgfx::VertexLayout layout, bgfx::VertexLayout model_layout, const std::string& compute_path, uint16_t num_images = 100, size_t size = 100000);
 
     ~BatchManager();
@@ -176,8 +187,11 @@ public:
     // Load a texture from a path
     uint32_t load_texture(const std::string& path);
 
-    // Add a mesh to a batch
-    std::pair<Batch*, size_t*> add(Mesh* mesh); 
+    // Add a model to a batch
+    std::pair<Batch*, size_t> add(Model* model); 
+
+    // Add data for a new instance to a batch
+    std::pair<Batch*, size_t> add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer);
     
     // Draw all of the batches
     void draw();

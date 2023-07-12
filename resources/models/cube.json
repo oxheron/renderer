@@ -1,0 +1,11 @@
+{
+  "animations":
+  {
+    "claw": ["0", "1", "2"]
+  },
+  "animation_frames":
+  {
+    "0" : "resources/models/cube.gltf"
+  },
+  "texture": "resources/textures/square_swirls.png"
+}

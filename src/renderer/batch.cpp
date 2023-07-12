@@ -14,10 +14,12 @@
 // std
 #include <cstdint>
 #include <cstdio>
+#include <stdexcept>
 #include <utility>
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 Batch::Batch()
 {
@@ -38,9 +40,9 @@ Batch::Batch(size_t size, const std::string& compute_path, const bgfx::VertexLay
     this->vertex_layout = vertex_layout;
     this->model_layout = model_layout;
     vbh = bgfx::createDynamicVertexBuffer(size, vertex_layout, BGFX_BUFFER_ALLOW_RESIZE);
-    ibh = bgfx::createDynamicIndexBuffer(size, BGFX_BUFFER_ALLOW_RESIZE);
-    objs_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 10, ObjIndex::layout(), BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_COMPUTE_READ);
-    instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 10, model_layout, BGFX_BUFFER_ALLOW_RESIZE);
+    ibh = bgfx::createDynamicIndexBuffer(size, BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_INDEX32);
+    objs_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, ObjIndex::layout(), BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_COMPUTE_READ);
+    instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, model_layout, BGFX_BUFFER_ALLOW_RESIZE);
     draw_params = bgfx::createUniform("draw_params", bgfx::UniformType::Vec4);
     indirect_buffer = BGFX_INVALID_HANDLE;
     start_update = end_update = SIZE_MAX;
@@ -59,9 +61,16 @@ Batch::Batch(Batch&& other) noexcept
     this->compute_program = other.compute_program;
     this->draw_params = other.draw_params;
     this->size = other.size;
-    this->index_pointers = other.index_pointers;
-    this->index_starts = other.index_starts;
-    this->index_counts = other.index_counts;
+    this->model_data = std::move(other.model_data);
+    this->objs_data = std::move(other.objs_data);
+    this->allocation_data = std::move(other.allocation_data);
+    this->start_update = other.start_update;
+    this->end_update = other.end_update;
+    this->refresh = other.refresh;
+    this->current_index = other.current_index;
+    this->draw_indexes = std::move(other.draw_indexes);
+    this->instance_indexes = std::move(other.instance_indexes);
+    this->draw_to_instance = std::move(other.draw_to_instance);
     other.vbh = BGFX_INVALID_HANDLE;
     other.ibh = BGFX_INVALID_HANDLE;
     other.objs_buffer = BGFX_INVALID_HANDLE;
@@ -70,7 +79,6 @@ Batch::Batch(Batch&& other) noexcept
     other.compute_program = BGFX_INVALID_HANDLE;
     other.draw_params = BGFX_INVALID_HANDLE;
     other.size = 0;
-    other.index_pointers.clear();
 }
 
 Batch& Batch::operator=(Batch&& other) noexcept
@@ -85,9 +93,16 @@ Batch& Batch::operator=(Batch&& other) noexcept
     this->compute_program = other.compute_program;
     this->draw_params = other.draw_params;
     this->size = other.size;
-    this->index_pointers = other.index_pointers;
-    this->index_starts = other.index_starts;
-    this->index_counts = other.index_counts;
+    this->model_data = std::move(other.model_data);
+    this->objs_data = std::move(other.objs_data);
+    this->allocation_data = std::move(other.allocation_data);
+    this->start_update = other.start_update;
+    this->end_update = other.end_update;
+    this->refresh = other.refresh;
+    this->current_index = other.current_index;
+    this->draw_indexes = std::move(other.draw_indexes);
+    this->instance_indexes = std::move(other.instance_indexes);
+    this->draw_to_instance = std::move(other.draw_to_instance);
     other.vbh = BGFX_INVALID_HANDLE;
     other.ibh = BGFX_INVALID_HANDLE;
     other.objs_buffer = BGFX_INVALID_HANDLE;
@@ -101,11 +116,6 @@ Batch& Batch::operator=(Batch&& other) noexcept
 
 Batch::~Batch()
 {
-    for (size_t* ptr : index_pointers)
-    {
-        delete ptr;
-    }
-
     if (bgfx::isValid(vbh)) bgfx::destroy(vbh);
     if (bgfx::isValid(ibh)) bgfx::destroy(ibh);
     if (bgfx::isValid(objs_buffer)) bgfx::destroy(objs_buffer);
@@ -115,62 +125,124 @@ Batch::~Batch()
     if (bgfx::isValid(draw_params)) bgfx::destroy(draw_params);
 }
 
-size_t* Batch::add(Mesh* mesh)
+size_t Batch::add(Model* model)
 {
-    auto [vertex_start, index_start] = get_start_in_buffers(mesh->get_vertex_buffer().size() / vertex_layout.getStride(), mesh->get_index_buffer().size() / sizeof(uint16_t));
+    size_t instance_index = add_instance_data(model->get_vertex_buffer(), model->get_index_buffer());
+    add_instance(model, instance_index, false);
+    return instance_index;
+}
 
-    if (vertex_start == SIZE_MAX || index_start == SIZE_MAX) return nullptr;
- 
-    bgfx::update(vbh, vertex_start, bgfx::makeRef(mesh->get_vertex_buffer().data(), mesh->get_vertex_buffer().size())); 
-    bgfx::update(ibh, index_start, bgfx::makeRef(mesh->get_index_buffer().data(), mesh->get_index_buffer().size())); 
-
-    objs_data.push_back(ObjIndex{(float) vertex_start, (float) mesh->get_vertex_buffer().size() / vertex_layout.getStride(), 
-        (float) index_start + mesh->animation_start(), (float) mesh->animation_length()});
-    index_starts.push_back(index_start);
-    index_counts.push_back(mesh->get_index_buffer().size() / sizeof(uint16_t));
-
-    for (size_t i = 0; i < mesh->get_model_buffer().size(); i++)
+void Batch::edit_model_data(Model* model, size_t index)
+{
+    if (!draw_indexes.contains(index)) return;
+    Buffer<uint8_t> model_buffer = model->get_model_buffer();
+    for (size_t i = 0; i < model_layout.getStride(); i++)
     {
-        model_data.push_back(mesh->get_model_buffer()[i]);
+        model_data[draw_indexes[index] * model_layout.getStride() + i] = model_buffer[i];
+    }
+
+    bgfx::update(instances_buffer, draw_indexes[index], 
+            bgfx::makeRef(&model_data[draw_indexes[index] * model_layout.getStride()], model_layout.getStride()));
+}
+ 
+void Batch::edit_indirect(Model* model, size_t index)
+{
+    if (!draw_indexes.contains(index) || !draw_to_instance.contains(index) || !instance_indexes.contains(draw_to_instance[index])) return;
+    objs_data[draw_indexes[index]].index_start = allocation_data[instance_indexes[draw_to_instance[index]]].index_start + model->animation_start();
+    objs_data[draw_indexes[index]].index_count = model->animation_length();
+    update_compute = true;
+
+    bgfx::update(objs_buffer, draw_indexes[index], 
+            bgfx::makeRef(&objs_data[draw_indexes[index]], sizeof(ObjIndex)));
+}
+
+void Batch::edit(Model* model, size_t index)
+{
+    // TODO
+}
+
+void Batch::remove(size_t index)
+{
+    remove_instance(index);
+    remove_instance_data(index);
+}
+
+size_t Batch::add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer)
+{
+    auto [vertex_start, index_start] = get_start_in_buffers(vertex_buffer.size() / vertex_layout.getStride(), index_buffer.size() / sizeof(uint16_t));
+    if (vertex_start == SIZE_MAX || index_start == SIZE_MAX) return SIZE_MAX;
+
+    bgfx::update(vbh, vertex_start, bgfx::makeRef(vertex_buffer.data(), vertex_buffer.size())); 
+    bgfx::update(ibh, index_start, bgfx::makeRef(index_buffer.data(), index_buffer.size())); 
+
+    allocation_data.emplace_back((float) vertex_start, (float) vertex_buffer.size(), (float) index_start, (float) index_buffer.size());
+    size_t instance_index = current_index++;
+    instance_indexes[instance_index] = allocation_data.size() - 1;
+    return instance_index;
+}
+
+size_t Batch::add_instance(Model* model, size_t instance_index, bool new_index)
+{
+    if (instance_index == SIZE_MAX) return SIZE_MAX;
+    objs_data.emplace_back(allocation_data[instance_indexes[instance_index]].vertex_start, 
+            allocation_data[instance_indexes[instance_index]].vertex_count, 
+            model->animation_start() + allocation_data[instance_indexes[instance_index]].index_start, 
+            (float) model->animation_length());
+
+    Buffer<uint8_t> model_buffer = model->get_model_buffer();
+    for (size_t i = 0; i < model_buffer.size(); i++)
+    {
+        model_data.push_back(model_buffer[i]);
     }
 
     if (start_update == SIZE_MAX) start_update = objs_data.size() - 1;
     end_update = objs_data.size();
-
-    // No direct storage, update whole draw buffer & instance buffer every frame (will change method if this gets slow)
+    
+    size_t created_index = new_index ? current_index++ : instance_index;
+    draw_indexes[created_index] = objs_data.size() - 1;
+    draw_to_instance[created_index] = instance_index;
     update_compute = true;
-    index_pointers.push_back(new size_t);
-    *index_pointers.back() = objs_data.size() - 1;
-    return index_pointers.back();
+    return created_index;
 }
 
-void Batch::edit_model_data(Mesh* mesh, size_t* index)
+void Batch::remove_instance_data(size_t index)
 {
-    for (size_t i = 0; i < model_layout.getStride(); i++)
+    if (!instance_indexes.contains(index)) return;
+    size_t index_value = instance_indexes[index];
+    allocation_data.erase(allocation_data.begin() + instance_indexes[index]);
+    instance_indexes.erase(index);
+    for (auto& [key, value] : instance_indexes)
     {
-        model_data[*index * model_layout.getStride() + i] = mesh->get_model_buffer()[i];
+        if (value > index_value) value--;
     }
 
-    // Update function
+    for (auto& [key, value] : draw_to_instance)
+    {
+        if (value == index_value) throw std::runtime_error("All instances must be deleted before removing the instance data!");
+    }
 }
 
-void Batch::edit_indirect(Mesh* mesh, size_t* index)
-{
-    objs_data[*index].index_start = index_starts[*index] + mesh->animation_start();
-    objs_data[*index].index_count = mesh->animation_length();
+void Batch::remove_instance(size_t index)
+{   
+    if (!draw_indexes.contains(index)) return;
     update_compute = true;
+    refresh = true; 
 
-    // Update function
-}
+    objs_data.erase(objs_data.begin() + draw_indexes[index]);
 
-void Batch::edit(Mesh* mesh, size_t* index)
-{
-    // TODO
-}
+    for (size_t i = 0; i < model_layout.getStride(); i++)
+    {
+        model_data.erase(model_data.begin() + draw_indexes[index] * model_layout.getStride());
+    }
 
-void Batch::remove(size_t* index)
-{
-    // TODO
+    size_t index_value = draw_indexes[index];
+    draw_indexes.erase(index);
+    for (auto& [key, value] : draw_indexes)
+    {
+        if (value > index_value) value--;
+    }
+
+    draw_to_instance.erase(index);
 }
 
 void Batch::draw(bgfx::ProgramHandle rendering_program)
@@ -196,7 +268,6 @@ void Batch::update()
 
     if (start_update != end_update && !refresh) 
     { 
-        std::cout << start_update << " " << end_update << std::endl;
         bgfx::update(instances_buffer, (uint32_t) start_update, bgfx::makeRef(&model_data[start_update * model_layout.getStride()], (end_update - start_update) * model_layout.getStride()));
         bgfx::update(objs_buffer, (uint32_t) start_update, bgfx::makeRef(&objs_data[start_update], (end_update - start_update) * sizeof(ObjIndex)));
     }
@@ -205,6 +276,7 @@ void Batch::update()
     {
         bgfx::update(instances_buffer, 0, bgfx::makeRef(model_data.data(), model_data.size()));
         bgfx::update(objs_buffer, 0, bgfx::makeRef(objs_data.data(), objs_data.size() * sizeof(ObjIndex)));
+        refresh = false;
     }
 
     if (update_compute)
@@ -229,37 +301,37 @@ std::pair<size_t, size_t> Batch::get_start_in_buffers(size_t num_vertices, size_
     vertices_free_ranges.emplace_back(0, size);
     indices_free_ranges.emplace_back(0, size);
 
-    for (size_t i = 0; i < objs_data.size(); i++)
+    for (size_t i = 0; i < allocation_data.size(); i++)
     {
         for (size_t j = 0; j < vertices_free_ranges.size(); j++)
         {
             // Split or remove each range
-            if (objs_data[i].vertex_start <= vertices_free_ranges[j].first 
-                    && objs_data[i].vertex_start + objs_data[i].vertex_count >= vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocation_data[i].vertex_start <= vertices_free_ranges[j].first 
+                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count >= vertices_free_ranges[j].first + vertices_free_ranges[j].second)
             {
                 vertices_free_ranges.erase(vertices_free_ranges.begin() + j);              
                 continue;
             }
 
-            if (objs_data[i].vertex_start > vertices_free_ranges[j].first 
-                    && objs_data[i].vertex_start + objs_data[i].vertex_count > vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocation_data[i].vertex_start > vertices_free_ranges[j].first 
+                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count > vertices_free_ranges[j].first + vertices_free_ranges[j].second)
             {
-                vertices_free_ranges[j].second = objs_data[i].vertex_start - vertices_free_ranges[j].first;
+                vertices_free_ranges[j].second = allocation_data[i].vertex_start - vertices_free_ranges[j].first;
                 continue;
             }
 
-            if (objs_data[i].vertex_start <= vertices_free_ranges[j].first 
-                    && objs_data[i].vertex_start + objs_data[i].vertex_count >= vertices_free_ranges[j].first) 
+            if (allocation_data[i].vertex_start <= vertices_free_ranges[j].first 
+                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count >= vertices_free_ranges[j].first) 
             {
-                vertices_free_ranges[j].first = objs_data[i].vertex_start + objs_data[i].vertex_count;
+                vertices_free_ranges[j].first = allocation_data[i].vertex_start + allocation_data[i].vertex_count;
                 continue;
             }
 
-            if (objs_data[i].vertex_start > vertices_free_ranges[j].first
-                    && objs_data[i].vertex_start + objs_data[i].vertex_count < vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocation_data[i].vertex_start > vertices_free_ranges[j].first
+                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count < vertices_free_ranges[j].first + vertices_free_ranges[j].second)
             {
-                vertices_free_ranges.emplace_back(objs_data[i].vertex_start + objs_data[i].vertex_count, vertices_free_ranges[j].second - objs_data[i].vertex_count);
-                vertices_free_ranges[j].second = objs_data[i].vertex_start - vertices_free_ranges[j].first;
+                vertices_free_ranges.emplace_back(allocation_data[i].vertex_start + allocation_data[i].vertex_count, vertices_free_ranges[j].second - allocation_data[i].vertex_count);
+                vertices_free_ranges[j].second = allocation_data[i].vertex_start - vertices_free_ranges[j].first;
                 continue;
             }
         }
@@ -267,32 +339,32 @@ std::pair<size_t, size_t> Batch::get_start_in_buffers(size_t num_vertices, size_
         for (size_t j = 0; j < indices_free_ranges.size(); j++)
         {
             // Split or remove each range
-            if (index_starts[i] <= indices_free_ranges[j].first 
-                    && index_starts[i] + index_counts[i] >= indices_free_ranges[j].first + indices_free_ranges[j].second)
+            if (allocation_data[i].index_start <= indices_free_ranges[j].first 
+                    && allocation_data[i].index_start + allocation_data[i].index_count >= indices_free_ranges[j].first + indices_free_ranges[j].second)
             {
                 indices_free_ranges.erase(indices_free_ranges.begin() + j);              
                 continue;
             }
 
-            if  (index_starts[i] > indices_free_ranges[j].first 
-                    && index_starts[i] + index_counts[i] > indices_free_ranges[j].first + indices_free_ranges[j].second)
+            if  (allocation_data[i].index_start > indices_free_ranges[j].first 
+                    && allocation_data[i].index_start + allocation_data[i].index_count > indices_free_ranges[j].first + indices_free_ranges[j].second)
             {
-                indices_free_ranges[j].second = index_starts[i] - indices_free_ranges[j].first;
+                indices_free_ranges[j].second = allocation_data[i].index_start - indices_free_ranges[j].first;
                 continue;
             }
 
-            if (index_starts[i] <= indices_free_ranges[j].first 
-                    && index_starts[i] + index_counts[i] >= indices_free_ranges[j].first) 
+            if (allocation_data[i].index_start <= indices_free_ranges[j].first 
+                    && allocation_data[i].index_start + allocation_data[i].index_count >= indices_free_ranges[j].first) 
             {
-                indices_free_ranges[j].first = index_starts[i] + index_counts[i];
+                indices_free_ranges[j].first = allocation_data[i].index_start + allocation_data[i].index_count; 
                 continue;
             }
 
-            if (index_starts[i] > vertices_free_ranges[j].first
-                    && index_starts[i] + index_counts[i] < indices_free_ranges[j].first + indices_free_ranges[j].second)
+            if (allocation_data[i].index_start > indices_free_ranges[j].first
+                    && allocation_data[i].index_start + allocation_data[i].index_count < indices_free_ranges[j].first + indices_free_ranges[j].second)
             {
-                indices_free_ranges.emplace_back(index_starts[i] + index_counts[i], indices_free_ranges[j].second - index_counts[i]);
-                indices_free_ranges[j].second = index_starts[i] - indices_free_ranges[j].first;
+                indices_free_ranges.emplace_back(allocation_data[i].index_start + allocation_data[i].index_count, indices_free_ranges[j].second - allocation_data[i].index_count);
+                indices_free_ranges[j].second = allocation_data[i].index_start - indices_free_ranges[j].first;
                 continue;
             }
         }
@@ -367,17 +439,30 @@ uint32_t BatchManager::load_texture(const std::string& path)
     return num_images_used++;
 }
 
-std::pair<Batch*, size_t*> BatchManager::add(Mesh* mesh)
+std::pair<Batch*, size_t> BatchManager::add(Model* model)
 {
     for (auto& batch : batches)
     {
-        size_t* rval = batch.add(mesh);
-        if (rval == nullptr) continue;
+        size_t rval = batch.add(model);
+        if (rval == SIZE_MAX) continue;
         return {&batch, rval};
     }
 
     batches.emplace_back(batch_size, compute_path, vertex_layout, model_layout);
-    return {&batches.back(), batches.back().add(mesh)};
+    return {&batches.back(), batches.back().add(model)};
+}
+
+std::pair<Batch*, size_t> BatchManager::add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer)
+{
+    for (auto& batch : batches)
+    {
+        size_t rval = batch.add_instance_data(vertex_buffer, index_buffer);
+        if (rval == SIZE_MAX) continue;
+        return {&batch, rval};
+    }
+
+    batches.emplace_back(batch_size, compute_path, vertex_layout, model_layout);
+    return {&batches.back(), batches.back().add_instance_data(vertex_buffer, index_buffer)};
 }
 
 void BatchManager::draw()
