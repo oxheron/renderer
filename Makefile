@@ -1,5 +1,6 @@
-TARGET_EXEC = engine
+TARGET_EXEC = libRenderer.a
 CC = clang++
+LD = ar
 
 SRC = $(wildcard src/*.cpp) $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/**/**/*.cpp)
 OBJ = $(SRC:.cpp=.o)
@@ -10,10 +11,10 @@ LIBS = lib/bgfx/.build/linux64_gcc/bin/libbgfxDebug.a lib/bgfx/.build/linux64_gc
 INC_DIR_SRC = -Isrc 
 INC_DIR_LIB = -Ilib -Ilib/json/single_include -Ilib/bgfx/include -Ilib/bimg/include -Ilib/bx/include -Ilib/glfw/include -Ilib/OBJ-Loader/include -Ilib/cgltf/include -Ilib/glm/include
 
-DEBUGFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIB) -Wall -g
+DEBUGFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIB) -Wall -g -DDEBUG=1
 RELEASEFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIB) -O2
 ASMFLAGS = $(INC_DIR_SRC) $(INC_DIR_LIBS) -Wall
-LDFLAGS = $(LIBS) -lm -fuse-ld=mold
+LDFLAGS = rcs 
 
 .PHONY: all clean  
 
@@ -25,7 +26,7 @@ dirs:
 	mkdir -p ./$(BIN)
 
 link: $(OBJ)
-	$(CC) -o $(BIN)/$(TARGET_EXEC) $^ $(LDFLAGS)
+	$(AR) $(LDFLAGS) $(BIN)/$(TARGET_EXEC) $^ 
 
 bld: 
 	$(MAKE) dirs

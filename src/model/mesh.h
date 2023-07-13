@@ -187,5 +187,5 @@ public:
 
     // Animation, done by changing the index buffer
     virtual size_t animation_start() { return 0; }
-    virtual size_t animation_length() { return get_index_buffer().size() / sizeof(uint16_t); }
+    virtual size_t animation_length() { return get_index_buffer().size() / sizeof(uint32_t); }
 };

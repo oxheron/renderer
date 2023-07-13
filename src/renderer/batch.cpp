@@ -245,15 +245,15 @@ void Batch::remove_instance(size_t index)
     draw_to_instance.erase(index);
 }
 
-void Batch::draw(bgfx::ProgramHandle rendering_program)
+void Batch::draw(bgfx::ProgramHandle rendering_program, bgfx::Encoder* encoder)
 {
-    update();
+    update(encoder);
     if (!isValid(indirect_buffer)) return;
 
-    bgfx::setVertexBuffer(0, vbh);
-    bgfx::setIndexBuffer(ibh);
-    bgfx::setInstanceDataBuffer(instances_buffer, 0, objs_data.size());
-    bgfx::submit(0, rendering_program, indirect_buffer, 0, objs_data.size());
+    encoder->setVertexBuffer(0, vbh);
+    encoder->setIndexBuffer(ibh);
+    encoder->setInstanceDataBuffer(instances_buffer, 0, objs_data.size());
+    encoder->submit(0, rendering_program, indirect_buffer, 0, objs_data.size());
 }
 
 void Batch::set_compute_program(const std::string& compute_path)
@@ -262,7 +262,7 @@ void Batch::set_compute_program(const std::string& compute_path)
     compute_program = bgfx::createProgram(load_shader(compute_path), true); 
 }
 
-void Batch::update()
+void Batch::update(bgfx::Encoder* encoder)
 {
     if (!isValid(compute_program)) return;
 
@@ -284,10 +284,10 @@ void Batch::update()
         if (isValid(indirect_buffer)) bgfx::destroy(indirect_buffer);
         indirect_buffer = bgfx::createIndirectBuffer(objs_data.size());
         float draw_data[4] = {float(objs_data.size()), 0, 0, 0};
-        bgfx::setUniform(draw_params, draw_data);
-        bgfx::setBuffer(0, objs_buffer, bgfx::Access::Read);
-        bgfx::setBuffer(1, indirect_buffer, bgfx::Access::Write);
-        bgfx::dispatch(0, compute_program, uint32_t(objs_data.size()/64 + 1), 1, 1);
+        encoder->setUniform(draw_params, draw_data);
+        encoder->setBuffer(0, objs_buffer, bgfx::Access::Read);
+        encoder->setBuffer(1, indirect_buffer, bgfx::Access::Write);
+        encoder->dispatch(0, compute_program, uint32_t(objs_data.size()/64 + 1), 1, 1);
         update_compute = false;
     }
     
@@ -468,10 +468,14 @@ std::pair<Batch*, size_t> BatchManager::add_instance_data(Buffer<uint8_t> vertex
 void BatchManager::draw()
 {
     // Bind textures and set render state
-    bgfx::setTexture(0, this->texture_sampler, this->texture_handle);
-    bgfx::setState(BGFX_STATE_DEFAULT);
+    // Multithreaded drawing
+    // Potentially evolve onto more complex structure?
+    bgfx::Encoder* encoder = bgfx::begin();
+    encoder->setTexture(0, this->texture_sampler, this->texture_handle);
+    encoder->setState(BGFX_STATE_DEFAULT);
     for (auto& batch : batches)
     {
-        batch.draw(this->rendering_program);
+        batch.draw(this->rendering_program, encoder);
     }
+    bgfx::end(encoder);
 }

@@ -122,7 +122,7 @@ public:
     void remove_instance(size_t index);
 
     // Texture list should have been bound before
-    void draw(bgfx::ProgramHandle rendering_program);
+    void draw(bgfx::ProgramHandle rendering_program, bgfx::Encoder* encoder);
 
     // Change/add a compute progam 
     void set_compute_program(const std::string& compute_path);
@@ -130,7 +130,7 @@ private:
     // Do all updates to the objs data and model data
     // Update the batch renderer
     // Run the compute shader (if needed)
-    void update();
+    void update(bgfx::Encoder* encoder);
 
     // Get the start of the vertex and index buffers for a new model being added
     std::pair<size_t, size_t> get_start_in_buffers(size_t num_vertices, size_t num_indices);

@@ -19,9 +19,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <future> 
+#include <fstream>
 
 int main(void)
 {   
+#ifdef DEBUG
+    std::ofstream file("log.txt", std::ios::out | std::ios::trunc);
+#endif
     GlobalInitalizer init;
     // global->mouse.set_mode(GLFW_CURSOR_DISABLED);
 
@@ -77,8 +82,6 @@ int main(void)
     mesh1.upload();
     mesh2->upload();
 
-    bgfx::touch(0);
-
     Camera camera;
 
     uint32_t frames = 0;
@@ -110,9 +113,13 @@ int main(void)
         
         // model = glm::rotate(model, glm::radians(0.1f), glm::vec3(0, 1, 0));
         // mesh2.set_modelmat(model);
-        manager.draw();
-        
+        auto promise = std::async(std::launch::async, &BatchManager::draw, &manager);
+
         bgfx::frame();
+#ifdef DEBUG
+        const bgfx::Stats* stats = bgfx::getStats();
+        file << (int) stats->numEncoders << std::endl;
+#endif
         global->tm.hold_at_fps();
         if (global->tm.is_second()) std::cout << global->tm.get_fps() << std::endl;
         frames++;
