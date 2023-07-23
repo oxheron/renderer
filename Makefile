@@ -22,7 +22,7 @@ LDFLAGS = rcs
 
 .PHONY: all clean  
 
-all: clean shaders
+all: clean 
 	$(MAKE) -j8 bld
 	$(MAKE) link
 
