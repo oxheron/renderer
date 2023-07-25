@@ -18,12 +18,12 @@
       "-DDEBUG=1",
       "-DBX_CONFIG_DEBUG=1",
       "-o",
-      "src/core/window.o",
-      "src/core/window.cpp"
+      "src/core/shader.o",
+      "src/core/shader.cpp"
     ],
     "directory": "/devel/engine",
-    "file": "/devel/engine/src/core/window.cpp",
-    "output": "/devel/engine/src/core/window.o"
+    "file": "/devel/engine/src/core/shader.cpp",
+    "output": "/devel/engine/src/core/shader.o"
   },
   {
     "arguments": [
@@ -70,64 +70,38 @@
       "-DDEBUG=1",
       "-DBX_CONFIG_DEBUG=1",
       "-o",
+      "src/core/window.o",
+      "src/core/window.cpp"
+    ],
+    "directory": "/devel/engine",
+    "file": "/devel/engine/src/core/window.cpp",
+    "output": "/devel/engine/src/core/window.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-c",
+      "-Isrc",
+      "-Ilib",
+      "-Ilib/json/single_include",
+      "-Ilib/bgfx/include",
+      "-Ilib/bimg/include",
+      "-Ilib/bx/include",
+      "-Ilib/glfw/include",
+      "-Ilib/cgltf/include",
+      "-Ilib/glm",
+      "-Wall",
+      "-g",
+      "-DDEBUG=1",
+      "-DBX_CONFIG_DEBUG=1",
+      "-o",
       "src/model/mesh.o",
       "src/model/mesh.cpp"
     ],
     "directory": "/devel/engine",
     "file": "/devel/engine/src/model/mesh.cpp",
     "output": "/devel/engine/src/model/mesh.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/clang++",
-      "-std=c++20",
-      "-c",
-      "-Isrc",
-      "-Ilib",
-      "-Ilib/json/single_include",
-      "-Ilib/bgfx/include",
-      "-Ilib/bimg/include",
-      "-Ilib/bx/include",
-      "-Ilib/glfw/include",
-      "-Ilib/cgltf/include",
-      "-Ilib/glm",
-      "-Wall",
-      "-g",
-      "-DDEBUG=1",
-      "-DBX_CONFIG_DEBUG=1",
-      "-o",
-      "src/core/shader.o",
-      "src/core/shader.cpp"
-    ],
-    "directory": "/devel/engine",
-    "file": "/devel/engine/src/core/shader.cpp",
-    "output": "/devel/engine/src/core/shader.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/clang++",
-      "-std=c++20",
-      "-c",
-      "-Isrc",
-      "-Ilib",
-      "-Ilib/json/single_include",
-      "-Ilib/bgfx/include",
-      "-Ilib/bimg/include",
-      "-Ilib/bx/include",
-      "-Ilib/glfw/include",
-      "-Ilib/cgltf/include",
-      "-Ilib/glm",
-      "-Wall",
-      "-g",
-      "-DDEBUG=1",
-      "-DBX_CONFIG_DEBUG=1",
-      "-o",
-      "src/global.o",
-      "src/global.cpp"
-    ],
-    "directory": "/devel/engine",
-    "file": "/devel/engine/src/global.cpp",
-    "output": "/devel/engine/src/global.o"
   },
   {
     "arguments": [
@@ -174,6 +148,32 @@
       "-DDEBUG=1",
       "-DBX_CONFIG_DEBUG=1",
       "-o",
+      "src/renderer/batch.o",
+      "src/renderer/batch.cpp"
+    ],
+    "directory": "/devel/engine",
+    "file": "/devel/engine/src/renderer/batch.cpp",
+    "output": "/devel/engine/src/renderer/batch.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-c",
+      "-Isrc",
+      "-Ilib",
+      "-Ilib/json/single_include",
+      "-Ilib/bgfx/include",
+      "-Ilib/bimg/include",
+      "-Ilib/bx/include",
+      "-Ilib/glfw/include",
+      "-Ilib/cgltf/include",
+      "-Ilib/glm",
+      "-Wall",
+      "-g",
+      "-DDEBUG=1",
+      "-DBX_CONFIG_DEBUG=1",
+      "-o",
       "src/texture/texture.o",
       "src/texture/texture.cpp"
     ],
@@ -200,12 +200,12 @@
       "-DDEBUG=1",
       "-DBX_CONFIG_DEBUG=1",
       "-o",
-      "src/renderer/batch.o",
-      "src/renderer/batch.cpp"
+      "src/global.o",
+      "src/global.cpp"
     ],
     "directory": "/devel/engine",
-    "file": "/devel/engine/src/renderer/batch.cpp",
-    "output": "/devel/engine/src/renderer/batch.o"
+    "file": "/devel/engine/src/global.cpp",
+    "output": "/devel/engine/src/global.o"
   },
   {
     "arguments": [
