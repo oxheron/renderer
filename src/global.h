@@ -26,9 +26,9 @@ struct Global
 
 extern Global* global;
 
-class GlobalInitalizer
+class GlobalInitializer
 {
 public:
-    GlobalInitalizer() { global = new Global; global->init(); }
-    ~GlobalInitalizer() { delete global; }
+    GlobalInitializer() { global = new Global; global->init(); }
+    ~GlobalInitializer() { delete global; }
 };
