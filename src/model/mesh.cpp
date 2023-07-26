@@ -22,6 +22,7 @@ void Mesh::load_data(const std::string& path)
     this->texture_path = data["texture"].get<std::string>();
 
     // Load the actual animation data
+    if (!data.contains("animation_frames")) throw std::runtime_error("Invalid json file loaded (no animation_frames)");
     json frame_paths = data["animation_frames"];
     for (auto& [key, value] : frame_paths.items())
     {

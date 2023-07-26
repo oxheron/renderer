@@ -169,13 +169,13 @@ void Batch::remove(size_t index)
 
 size_t Batch::add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer)
 {
-    auto [vertex_start, index_start] = get_start_in_buffers(vertex_buffer.size() / vertex_layout.getStride(), index_buffer.size() / sizeof(uint16_t));
+    auto [vertex_start, index_start] = get_start_in_buffers(vertex_buffer.size() / vertex_layout.getStride(), index_buffer.size() / sizeof(uint32_t));
     if (vertex_start == SIZE_MAX || index_start == SIZE_MAX) return SIZE_MAX;
 
     bgfx::update(vbh, vertex_start, bgfx::makeRef(vertex_buffer.data(), vertex_buffer.size())); 
     bgfx::update(ibh, index_start, bgfx::makeRef(index_buffer.data(), index_buffer.size())); 
 
-    allocation_data.emplace_back((float) vertex_start, (float) vertex_buffer.size(), (float) index_start, (float) index_buffer.size());
+    allocation_data.emplace_back((float) vertex_start, (float) vertex_buffer.size() / vertex_layout.getStride(), (float) index_start, (float) index_buffer.size() / sizeof(uint32_t));
     size_t instance_index = current_index++;
     instance_indexes[instance_index] = allocation_data.size() - 1;
     return instance_index;
