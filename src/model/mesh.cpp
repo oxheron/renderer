@@ -73,7 +73,7 @@ void Mesh::load_animation(const std::string& identifier, const std::string& path
         else indices[i] = ((uint32_t*) ((char*) data->buffers->data + data->buffer_views[3].offset))[i];
     }
 
-    animation_frames[identifier] = {indices.size() - indices_size - 1, indices_size};
+    animation_frames[identifier] = {indices.size() / sizeof(uint32_t) - indices_size / sizeof(uint32_t) - 1, indices_size / sizeof(uint32_t)};
 
     cgltf_free(data);
 }
