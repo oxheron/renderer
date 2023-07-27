@@ -110,7 +110,7 @@ public:
     virtual Buffer<uint8_t> get_index_buffer() { return mesh.get_indices(); }
 
     virtual size_t animation_start() { return 0; }
-    virtual size_t animation_length() { return mesh.get_indices().size(); }
+    virtual size_t animation_length() { return mesh.get_indices().size() / sizeof(uint32_t); }
 
     Batch* get_batch() { return batch; }
     size_t get_index() { return index; }
