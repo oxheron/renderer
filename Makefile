@@ -41,6 +41,9 @@ obj: $(OBJ)
 %.o: %.cpp
 	$(CC) -std=c++20 -o $@ -c $< $(CFLAGS)
 
+headers:
+	python3 scripts/headers_to_lib.py
+
 clean:
 	clear
 	rm -rf $(BIN) $(OBJ)
