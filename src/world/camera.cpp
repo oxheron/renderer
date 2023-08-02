@@ -20,11 +20,11 @@ void Camera::add_roll(float angle)
 
 void Camera::update_front()
 {
+    auto ru = glm::rotate(glm::mat4(1.0f), glm::radians(roll), glm::vec3(0, 0, 1));
     auto rw = glm::rotate(glm::mat4(1.0f), glm::radians(yaw), glm::vec3(0, 1, 0));
     auto rv = glm::rotate(glm::mat4(1.0f), glm::radians(pitch), glm::vec3(1, 0, 0));
-    auto ru = glm::rotate(glm::mat4(1.0f), glm::radians(roll), glm::vec3(0, 0, 1));
 
-    auto r = rw * rv * ru;
+    auto r = ru * rw * rv;
     front = glm::vec3(r * glm::vec4(start_front, 1.0f)); 
 }
 
