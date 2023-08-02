@@ -11,11 +11,13 @@ void Camera::add_pitch(float angle)
 void Camera::add_yaw(float angle)
 {
     yaw += angle;
+    update_front();
 }
 
 void Camera::add_roll(float angle)
 {
     roll += angle;
+    update_front();
 }
 
 void Camera::update_front()
