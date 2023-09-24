@@ -142,7 +142,8 @@ void Batch::edit_model_data(Model* model, size_t index)
     }
 
     bgfx::update(instances_buffer, draw_indexes[index], 
-            bgfx::makeRef(&model_data[draw_indexes[index] * model_layout.getStride()], model_layout.getStride()));
+            bgfx::makeRef(&model_data[draw_indexes[index] * model_layout.getStride()], 
+                model_layout.getStride()));
 }
  
 void Batch::edit_indirect(Model* model, size_t index)
@@ -183,7 +184,6 @@ size_t Batch::add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> i
 
 size_t Batch::add_instance(Model* model, size_t instance_index, bool new_index)
 {
-    if (instance_index == SIZE_MAX) return SIZE_MAX;
     objs_data.emplace_back(allocation_data[instance_indexes[instance_index]].vertex_start, 
             allocation_data[instance_indexes[instance_index]].vertex_count, 
             model->animation_start() + allocation_data[instance_indexes[instance_index]].index_start, 
@@ -268,8 +268,13 @@ void Batch::update(bgfx::Encoder* encoder)
 
     if (start_update != end_update && !refresh) 
     { 
-        bgfx::update(instances_buffer, (uint32_t) start_update, bgfx::makeRef(&model_data[start_update * model_layout.getStride()], (end_update - start_update) * model_layout.getStride()));
-        bgfx::update(objs_buffer, (uint32_t) start_update, bgfx::makeRef(&objs_data[start_update], (end_update - start_update) * sizeof(ObjIndex)));
+        bgfx::update(instances_buffer, (uint32_t) start_update, 
+            bgfx::makeRef(&model_data[start_update * model_layout.getStride()], 
+                (end_update - start_update) * model_layout.getStride()));
+
+        bgfx::update(objs_buffer, (uint32_t) start_update, 
+            bgfx::makeRef(&objs_data[start_update], 
+                (end_update - start_update) * sizeof(ObjIndex)));
     }
 
     if (refresh)
@@ -296,93 +301,61 @@ void Batch::update(bgfx::Encoder* encoder)
 
 std::pair<size_t, size_t> Batch::get_start_in_buffers(size_t num_vertices, size_t num_indices)
 {
-    std::vector<std::pair<size_t, size_t>> vertices_free_ranges;  
-    std::vector<std::pair<size_t, size_t>> indices_free_ranges;  
-    vertices_free_ranges.emplace_back(0, size);
-    indices_free_ranges.emplace_back(0, size);
+    return std::make_pair(allocate_amount(num_vertices, size, 
+                Buffer<std::pair<size_t, size_t>>(vertex_buffer_usage.data(), 
+                    vertex_buffer_usage.size(), 
+            allocate_amount(num_indices, size, 
+                Buffer<std::pair<size_t, sizet>>(index_buffer_usage.data(), index_buffer_usage.size())))
+}
 
-    for (size_t i = 0; i < allocation_data.size(); i++)
+size_t allocate_amount(size_t amount, size_t space_size, 
+        Buffer<std::pair<size_t, size_t>> allocated_ranges)
+{
+    std::vector<std::pair<size_t>> free_ranges;
+    free_ranges.emplace_back(0, space_size);
+
+    for (size_t i = 0; i < allocated_ranges.size(); i++)
     {
-        for (size_t j = 0; j < vertices_free_ranges.size(); j++)
+        for (size_t j = 0; j < free_ranges.size(); j++)
         {
             // Split or remove each range
-            if (allocation_data[i].vertex_start <= vertices_free_ranges[j].first 
-                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count >= vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocated_ranges[i].first <= free_ranges[j].first 
+                    && allocation_ranges[i].first + allocation_ranges[i].vertex_count >= free_ranges[j].first + free_ranges[j].second)
             {
-                vertices_free_ranges.erase(vertices_free_ranges.begin() + j);              
+                free_ranges.erase(free_ranges.begin() + j);              
                 continue;
             }
 
-            if (allocation_data[i].vertex_start > vertices_free_ranges[j].first 
-                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count > vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocation_ranges[i].first > free_ranges[j].first 
+                    && allocation_ranges[i].first + allocation_ranges[i].vertex_count > free_ranges[j].first + free_ranges[j].second)
             {
-                vertices_free_ranges[j].second = allocation_data[i].vertex_start - vertices_free_ranges[j].first;
+                free_ranges[j].second = allocation_ranges[i].first - free_ranges[j].first;
                 continue;
             }
 
-            if (allocation_data[i].vertex_start <= vertices_free_ranges[j].first 
-                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count >= vertices_free_ranges[j].first) 
+            if (allocation_ranges[i].first <= free_ranges[j].first 
+                    && allocation_ranges[i].first + allocation_ranges[i].vertex_count >= free_ranges[j].first) 
             {
-                vertices_free_ranges[j].first = allocation_data[i].vertex_start + allocation_data[i].vertex_count;
+                free_ranges[j].first = allocation_ranges[i].first + allocation_ranges[i].vertex_count;
                 continue;
             }
 
-            if (allocation_data[i].vertex_start > vertices_free_ranges[j].first
-                    && allocation_data[i].vertex_start + allocation_data[i].vertex_count < vertices_free_ranges[j].first + vertices_free_ranges[j].second)
+            if (allocation_ranges[i].first > free_ranges[j].first
+                    && allocation_ranges[i].first + allocation_ranges[i].vertex_count < free_ranges[j].first + free_ranges[j].second)
             {
-                vertices_free_ranges.emplace_back(allocation_data[i].vertex_start + allocation_data[i].vertex_count, vertices_free_ranges[j].second - allocation_data[i].vertex_count);
-                vertices_free_ranges[j].second = allocation_data[i].vertex_start - vertices_free_ranges[j].first;
+                free_ranges.emplace_back(allocation_ranges[i].first + allocation_ranges[i].vertex_count, free_ranges[j].second - allocation_ranges[i].vertex_count);
+                free_ranges[j].second = allocation_ranges[i].first - free_ranges[j].first;
                 continue;
             }
-        }
-
-        for (size_t j = 0; j < indices_free_ranges.size(); j++)
-        {
-            // Split or remove each range
-            if (allocation_data[i].index_start <= indices_free_ranges[j].first 
-                    && allocation_data[i].index_start + allocation_data[i].index_count >= indices_free_ranges[j].first + indices_free_ranges[j].second)
-            {
-                indices_free_ranges.erase(indices_free_ranges.begin() + j);              
-                continue;
-            }
-
-            if  (allocation_data[i].index_start > indices_free_ranges[j].first 
-                    && allocation_data[i].index_start + allocation_data[i].index_count > indices_free_ranges[j].first + indices_free_ranges[j].second)
-            {
-                indices_free_ranges[j].second = allocation_data[i].index_start - indices_free_ranges[j].first;
-                continue;
-            }
-
-            if (allocation_data[i].index_start <= indices_free_ranges[j].first 
-                    && allocation_data[i].index_start + allocation_data[i].index_count >= indices_free_ranges[j].first) 
-            {
-                indices_free_ranges[j].first = allocation_data[i].index_start + allocation_data[i].index_count; 
-                continue;
-            }
-
-            if (allocation_data[i].index_start > indices_free_ranges[j].first
-                    && allocation_data[i].index_start + allocation_data[i].index_count < indices_free_ranges[j].first + indices_free_ranges[j].second)
-            {
-                indices_free_ranges.emplace_back(allocation_data[i].index_start + allocation_data[i].index_count, indices_free_ranges[j].second - allocation_data[i].index_count);
-                indices_free_ranges[j].second = allocation_data[i].index_start - indices_free_ranges[j].first;
-                continue;
-            }
-        }
+        } 
     }
 
     std::pair<size_t, size_t> rval = {SIZE_MAX, SIZE_MAX};
 
-    for (auto range : vertices_free_ranges)
+    for (auto range : free_ranges)
     {
-        if (range.second >= num_vertices && range.first < rval.first) rval.first = range.first;
+        if (range.second >= count && range.first < rval.first) rval.first = range.first;
     }
-
-    for (auto range : indices_free_ranges)
-    {
-        if (range.second >= num_indices && range.first < rval.second) rval.second = range.first;
-    }
-
-    return rval;
 }
 
 BatchManager::BatchManager()
