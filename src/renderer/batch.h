@@ -57,8 +57,7 @@ private:
 
     // Allocation data for the vertex and index buffers
     // This is the way the data is layed out on the gpu
-    std::vector<std::pair<size_t, size_t>> vertex_buffer_usage;
-    std::vector<std::pair<size_t, size_t>> index_buffer_usage;
+    std::vector<ObjIndex> allocation_data;
 
     // The model instance data, such as matrices and textures
     // Only used for removal of models, since adding models doesn't require a whole buffer rewrite
