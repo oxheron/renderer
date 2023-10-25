@@ -55,8 +55,8 @@ private:
     // Contains vertex & index offsets and counts
     std::vector<ObjIndex> objs_data;
 
-    // True staring values of vertex and index buffers
-    // Instancing and animations make objs data not always hold the true data for allocation of new buffers
+    // Allocation data for the vertex and index buffers
+    // This is the way the data is layed out on the gpu
     std::vector<ObjIndex> allocation_data;
 
     // The model instance data, such as matrices and textures
@@ -196,3 +196,6 @@ public:
     // Draw all of the batches
     void draw();
 };
+
+size_t allocate_amount(size_t amount, size_t space_size, 
+        Buffer<std::pair<size_t, size_t>> allocated_ranges);
