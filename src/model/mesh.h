@@ -4,6 +4,7 @@
 #include "texture/texture.h"
 #include "util/buffer.h"
 #include "global.h"
+#include "renderer/batchmanager.h"
 
 // external
 #include <bgfx/bgfx.h>

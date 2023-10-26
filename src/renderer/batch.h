@@ -1,7 +1,6 @@
 #pragma once
 
-// internal
-#include "core/shader.h"
+// internal 
 #include "util/buffer.h"
 
 // external
@@ -12,6 +11,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
+#include <cstddef>
 
 // Forward declaration of Model
 class Model;
@@ -24,7 +24,9 @@ struct ObjIndex
 	float index_start;
 	float index_count;  
 
-    ObjIndex(float vs, float vc, float is, float ic) : vertex_start(vs), vertex_count(vc), index_start(is), index_count(ic) { }
+    ObjIndex(float vs, float vc, float is, float ic) 
+        : vertex_start(vs), vertex_count(vc), index_start(is), index_count(ic) 
+    {}
 
     static bgfx::VertexLayout layout()
     {
@@ -57,7 +59,8 @@ private:
 
     // Allocation data for the vertex and index buffers
     // This is the way the data is layed out on the gpu
-    std::vector<ObjIndex> allocation_data;
+    std::vector<std::pair<size_t, size_t>> vertex_buffer_usage;
+    std::vector<std::pair<size_t, size_t>> index_buffer_usage;
 
     // The model instance data, such as matrices and textures
     // Only used for removal of models, since adding models doesn't require a whole buffer rewrite
@@ -101,7 +104,9 @@ private:
     bool refresh;
 public:
     Batch();
-    explicit Batch(size_t size, const std::string& compute_path, const bgfx::VertexLayout& vertex_layout, const bgfx::VertexLayout& model_layout);
+    explicit Batch(size_t size, const std::string& compute_path, 
+        const bgfx::VertexLayout& vertex_layout, 
+        const bgfx::VertexLayout& model_layout);
     Batch(const Batch& other) = delete;
     Batch& operator=(const Batch& other) = delete;
     Batch(Batch&& other) noexcept;
@@ -116,8 +121,10 @@ public:
     void remove(size_t index);
 
     // Instance adding
-    size_t add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer);
-    size_t add_instance(Model* model, size_t instance_index, bool new_index = true);
+    size_t add_instance_data(Buffer<uint8_t> vertex_buffer, 
+        Buffer<uint8_t> index_buffer);
+    size_t add_instance(Model* model, size_t instance_index, 
+        bool new_index = true);
     void remove_instance_data(size_t index);
     void remove_instance(size_t index);
 
@@ -133,69 +140,9 @@ private:
     void update(bgfx::Encoder* encoder);
 
     // Get the start of the vertex and index buffers for a new model being added
-    std::pair<size_t, size_t> get_start_in_buffers(size_t num_vertices, size_t num_indices);
+    std::pair<size_t, size_t> get_start_in_buffers(size_t num_vertices, 
+        size_t num_indices);
 };
 
-class BatchManager 
-{
-private:
-    std::vector<Batch> batches;
-
-    // All of the texture stuff
-    // Bgfx stuff handled in the batch manager for now, maybe seperate texture class at some point
-    bgfx::TextureHandle texture_handle;
-    bgfx::UniformHandle texture_sampler;
-    std::unordered_map<std::string, uint32_t> mapped_paths;
-
-    // Image widths and heights
-    uint16_t width;
-    uint16_t height;
-
-    // Number of images
-    uint16_t num_images;
-    uint16_t num_images_used = 0;
-
-    // The compute program used for the batches (a file path)
-    std::string compute_path;
-
-    // The program used to render this set of batches
-    // Should be set before drawing
-    bgfx::ProgramHandle rendering_program = BGFX_INVALID_HANDLE;
-
-    // The layouts used in each batch
-    bgfx::VertexLayout vertex_layout;
-    bgfx::VertexLayout model_layout;
-
-    // The size of each batch (number of vertices)
-    size_t batch_size;
-public: 
-    BatchManager();
-
-    // Image width and height
-    // Maybe at some point layout will be specific to modeles, and the batch will be selected from that? 
-    explicit BatchManager(uint16_t width, uint16_t height, bgfx::VertexLayout layout, bgfx::VertexLayout model_layout, const std::string& compute_path, uint16_t num_images = 100, size_t size = 100000);
-
-    ~BatchManager();
-    
-    // Delete copy constructors
-    BatchManager(const BatchManager& other) = delete;
-    BatchManager& operator=(const BatchManager& other) = delete;
-
-    // Set the program for this batch manager
-    void set_program(const std::string& vertex_path, const std::string& fragement_path);
-
-    // Load a texture from a path
-    uint32_t load_texture(const std::string& path);
-
-    // Add a model to a batch
-    std::pair<Batch*, size_t> add(Model* model); 
-
-    // Add data for a new instance to a batch
-    std::pair<Batch*, size_t> add_instance_data(Buffer<uint8_t> vertex_buffer, Buffer<uint8_t> index_buffer);
-    
-    // Draw all of the batches
-    void draw();
-};
-
-size_t allocate_amount(size_t amount, size_t space_size, 
+size_t allocate_amount(size_t amount, size_t memory_size, 
         Buffer<std::pair<size_t, size_t>> allocated_ranges);
