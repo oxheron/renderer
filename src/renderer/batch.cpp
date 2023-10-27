@@ -27,17 +27,24 @@ Batch::Batch()
     size = 0;
 }
 
-Batch::Batch(size_t size, const std::string& compute_path, const bgfx::VertexLayout& vertex_layout, const bgfx::VertexLayout& model_layout)
+Batch::Batch(size_t size, const std::string& compute_path, 
+    const bgfx::VertexLayout& vertex_layout, 
+    const bgfx::VertexLayout& model_layout)
 {
     compute_program = BGFX_INVALID_HANDLE;
     this->size = size;
     set_compute_program(compute_path);
     this->vertex_layout = vertex_layout;
     this->model_layout = model_layout;
-    vbh = bgfx::createDynamicVertexBuffer(size, vertex_layout, BGFX_BUFFER_ALLOW_RESIZE);
-    ibh = bgfx::createDynamicIndexBuffer(size, BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_INDEX32);
-    objs_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, ObjIndex::layout(), BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_COMPUTE_READ);
-    instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, model_layout, BGFX_BUFFER_ALLOW_RESIZE);
+    vbh = bgfx::createDynamicVertexBuffer(size, vertex_layout, 
+        BGFX_BUFFER_ALLOW_RESIZE);
+    ibh = bgfx::createDynamicIndexBuffer(size, 
+        BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_INDEX32);
+    objs_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, 
+        ObjIndex::layout(), 
+        BGFX_BUFFER_ALLOW_RESIZE | BGFX_BUFFER_COMPUTE_READ);
+    instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, 
+        model_layout, BGFX_BUFFER_ALLOW_RESIZE);
     draw_params = bgfx::createUniform("draw_params", bgfx::UniformType::Vec4);
     indirect_buffer = BGFX_INVALID_HANDLE;
     start_update = end_update = SIZE_MAX;

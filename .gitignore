@@ -33,4 +33,4 @@
 
 # Specific files
 compile_commands.json
-
+bin/libRenderer.a
