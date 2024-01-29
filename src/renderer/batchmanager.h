@@ -2,9 +2,7 @@
 
 // internal
 #include "util/buffer.h"
-#include "util/util.h"
 #include "batch.h"
-#include "global.h"
 
 // external
 #include <bgfx/bgfx.h>
