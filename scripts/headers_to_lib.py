@@ -1,7 +1,7 @@
 import os
 
 directory = "src"
-output_path = "include/engine"
+output_path = "include"
 
 def iterate(start, include):
     for filename in os.listdir(start):
