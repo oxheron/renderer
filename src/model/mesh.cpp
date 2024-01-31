@@ -18,11 +18,13 @@ void Mesh::load_data(const std::string& path)
     std::fstream file(path);
     json data = json::parse(file); 
 
-    if (!data.contains("texture")) throw std::runtime_error("Invalid json file loaded");
+    if (!data.contains("texture")) 
+        throw std::runtime_error("Invalid json file loaded");
     this->texture_path = data["texture"].get<std::string>();
 
     // Load the actual animation data
-    if (!data.contains("animation_frames")) throw std::runtime_error("Invalid json file loaded (no animation_frames)");
+    if (!data.contains("animation_frames")) 
+        throw std::runtime_error("Invalid json file loaded (no animation_frames)");
     json frame_paths = data["animation_frames"];
     for (auto& [key, value] : frame_paths.items())
     {
@@ -85,23 +87,18 @@ StandardModel::StandardModel()
 
 StandardModel::~StandardModel()
 {
+
 }
 
 void StandardModel::load_mesh(const std::string& path)
 {
     mesh.load_data(path);
-    load_texture(mesh.get_texture());
 }
 
-void StandardModel::load_texture(const std::string& path)
+void StandardModel::load_texture(TextureAtlas* atlas)
 {
-    if (!br) return;
-    this->texture_id = br->load_texture(path);
-}
-
-void StandardModel::set_batchmanager(BatchManager* br)
-{
-    this->br = br;
+    if (!mesh.get_texture()) return;
+    this->texture_id = atlas->load_texture(mesh.get_texture().value());
 }
 
 // Set the model matrix
@@ -114,10 +111,10 @@ void StandardModel::set_modelmat(const glm::mat4& mat)
     if (batch) batch->edit_model_data(this, index);
 }
 
-void StandardModel::upload()
+void StandardModel::upload(BatchManager* batchmanager)
 {
     // Load to batch renderer
-    auto [batch, index] = br->add(this);
+    auto [batch, index] = batchmanager->add(this);
     this->batch = batch;
     this->index = index;
 }
@@ -145,19 +142,19 @@ BaseInstance::~BaseInstance()
 void BaseInstance::load_mesh(const std::string& path)
 {
     mesh.load_data(path);
-    load_texture(mesh.get_texture());
 }
 
-void BaseInstance::load_texture(const std::string& path)
+void BaseInstance::load_texture(TextureAtlas* atlas)
 {
-    if (!br) return;
-    this->texture_id = br->load_texture(path);
+    if (!mesh.get_texture()) return;
+    this->texture_id = atlas->load_texture(this->mesh.get_texture().value());
 }
 
-void BaseInstance::upload()
+void BaseInstance::upload(BatchManager* batchmanager)
 {
     if (this->mesh.get_vertices().size() == 0) return;
-    auto [batch, index] = br->add_instance_data(this->get_vertex_buffer(), this->get_index_buffer());
+    auto [batch, index] = batchmanager->add_instance_data(this->get_vertex_buffer(), 
+        this->get_index_buffer());
     this->batch = batch;
     this->instance_index = index;
 }
@@ -175,7 +172,7 @@ InstancedModel::~InstancedModel()
 
 void InstancedModel::upload()
 {
-    if (base->get_batch() == nullptr) base->upload();
+    if (base->get_batch() == nullptr) return; 
 
     index = base->get_batch()->add_instance(this, base->get_index()); 
 }

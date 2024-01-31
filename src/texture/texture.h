@@ -6,6 +6,7 @@
 
 // std
 #include <string>
+#include <unordered_map>
 
 class Texture
 {
@@ -29,4 +30,38 @@ public:
     void destroy();
     bgfx::TextureHandle& get_handle() { return texture_handle; }
     bgfx::UniformHandle& get_sampler() { return sampler_uniform; }
+};
+
+class TextureAtlas
+{
+private:
+    // Bgfx texture stuff, for an atlas
+    bgfx::TextureHandle texture_handle;
+    bgfx::UniformHandle texture_sampler;
+    std::unordered_map<std::string, uint32_t> mapped_paths;
+
+    // Image widths and heights
+    uint16_t width;
+    uint16_t height;
+
+    // Number of images
+    uint16_t num_images;
+    uint16_t num_images_used = 0;
+
+    // Texture slot
+    uint16_t stage;
+
+public:
+    TextureAtlas();
+    explicit TextureAtlas(uint16_t width, uint16_t height, 
+        uint16_t num_images = 100, const std::string& uniform_name = "texture", 
+        uint16_t stage = 0);
+
+    ~TextureAtlas();
+
+    // Load a texture from a path
+    uint16_t load_texture(const std::string& path);
+
+    // Bind these textures to an encoder
+    bgfx::Encoder* bind(bgfx::Encoder* encoder = nullptr);
 };

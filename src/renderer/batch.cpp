@@ -303,14 +303,20 @@ void Batch::update(bgfx::Encoder* encoder)
 
     if (start_update != end_update && !refresh) 
     { 
-        bgfx::update(instances_buffer, (uint32_t) start_update, bgfx::makeRef(&model_data[start_update * model_layout.getStride()], (end_update - start_update) * model_layout.getStride()));
-        bgfx::update(objs_buffer, (uint32_t) start_update, bgfx::makeRef(&objs_data[start_update], (end_update - start_update) * sizeof(ObjIndex)));
+        bgfx::update(instances_buffer, (uint32_t) start_update, 
+            bgfx::makeRef(&model_data[start_update * model_layout.getStride()], 
+                (end_update - start_update) * model_layout.getStride()));
+        bgfx::update(objs_buffer, (uint32_t) start_update, 
+            bgfx::makeRef(&objs_data[start_update], 
+                (end_update - start_update) * sizeof(ObjIndex)));
     }
 
     if (refresh)
     {
-        bgfx::update(instances_buffer, 0, bgfx::makeRef(model_data.data(), model_data.size()));
-        bgfx::update(objs_buffer, 0, bgfx::makeRef(objs_data.data(), objs_data.size() * sizeof(ObjIndex)));
+        bgfx::update(instances_buffer, 0, 
+            bgfx::makeRef(model_data.data(), model_data.size()));
+        bgfx::update(objs_buffer, 0, 
+            bgfx::makeRef(objs_data.data(), objs_data.size() * sizeof(ObjIndex)));
         refresh = false;
     }
 
@@ -322,7 +328,8 @@ void Batch::update(bgfx::Encoder* encoder)
         encoder->setUniform(draw_params, draw_data);
         encoder->setBuffer(0, objs_buffer, bgfx::Access::Read);
         encoder->setBuffer(1, indirect_buffer, bgfx::Access::Write);
-        encoder->dispatch(0, compute_program, uint32_t(objs_data.size()/64 + 1), 1, 1);
+        encoder->dispatch(0, compute_program, 
+            uint32_t(objs_data.size()/64 + 1), 1, 1);
         update_compute = false;
     }
     

@@ -14,6 +14,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // std
+#include <optional>
 #include <string> 
 #include <vector>
 
@@ -33,20 +34,29 @@ private:
     std::vector<uint32_t> indices;
 
     // Texture path 
-    std::string texture_path;
+    std::optional<std::string> texture_path;
 
     // Animation data
     std::unordered_map<std::string, std::pair<size_t, size_t>> animation_frames;
 public:
+    Mesh() 
+    {
+        this->texture_path = std::nullopt;
+    }
+    
     // Loads the model from a json file
     void load_data(const std::string& path);
 
     // Get the texture path to load into the batch manager
-    std::string get_texture() { return texture_path; }
+    std::optional<std::string> get_texture() { return texture_path; }
 
     // Get the vertices and indices
-    Buffer<uint8_t> get_vertices() { return Buffer<uint8_t>((uint8_t*) vertices.data(), vertices.size() * sizeof(Vertex)); }
-    Buffer<uint8_t> get_indices() { return Buffer<uint8_t>((uint8_t*) indices.data(), indices.size() * sizeof(uint32_t)); }
+    Buffer<uint8_t> get_vertices() { 
+        return Buffer<uint8_t>((uint8_t*) vertices.data(), 
+            vertices.size() * sizeof(Vertex)); }
+    Buffer<uint8_t> get_indices() { 
+        return Buffer<uint8_t>((uint8_t*) indices.data(), 
+            indices.size() * sizeof(uint32_t)); }
 private:
     // Adds one animation frame to the model
     void load_animation(const std::string& identifier, const std::string& path);
@@ -75,9 +85,6 @@ public:
 class StandardModel : public Model
 {
 private:
-    // The batch renderer for this model, when we do a draw should we load it to the renderer
-    BatchManager* br;
-
     // The batch that this model is in, as well as the index pointer for that batch
     Batch* batch = nullptr;
     size_t index = SIZE_MAX;
@@ -99,12 +106,11 @@ public:
     ~StandardModel();
 
     virtual void load_mesh(const std::string& path);
-    virtual void load_texture(const std::string& path);
+    virtual void load_texture(TextureAtlas* atlas);
 
     virtual void set_modelmat(const glm::mat4& mat);
-    virtual void set_batchmanager(BatchManager* br);
 
-    virtual void upload();
+    virtual void upload(BatchManager* batchmanager);
 
     virtual Buffer<uint8_t> get_model_buffer();
     virtual Buffer<uint8_t> get_vertex_buffer() { return mesh.get_vertices(); }
@@ -122,7 +128,6 @@ class BaseInstance
 private:
     // The batch and batchmanager for this instance, but not the index
     Batch* batch = nullptr;
-    BatchManager* br = nullptr;
 
     // An index into the allocation data of the batch 
     size_t instance_index;
@@ -140,16 +145,12 @@ private:
     void load_mesh(const std::string& path);
     
     // Loads the texture for this instance
-    void load_texture(const std::string& path);
+    void load_texture(TextureAtlas* atlas);
 
     // Uploads the instance data to the batch
-    void upload();
-    
-    // Set the batchmanager for this instance
-    void set_batchmanager(BatchManager* br) { this->br = br; }
+    void upload(BatchManager* batchmanager);
 
     // Getters 
-    BatchManager* get_batchmanager() { return br; }
     Batch* get_batch() { return batch; }
     uint32_t get_texture_id() { return texture_id; }
     Buffer<uint8_t> get_vertex_buffer() { return mesh.get_vertices(); } 
@@ -188,5 +189,6 @@ public:
 
     // Animation, done by changing the index buffer
     virtual size_t animation_start() { return 0; }
-    virtual size_t animation_length() { return get_index_buffer().size() / sizeof(uint32_t); }
+    virtual size_t animation_length() { 
+        return get_index_buffer().size() / sizeof(uint32_t); }
 };
