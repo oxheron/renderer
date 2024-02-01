@@ -52,7 +52,8 @@ std::pair<Batch*, size_t> BatchManager::add_instance_data(
         batches.back().add_instance_data(vertex_buffer, index_buffer)};
 }
 
-void BatchManager::draw(bgfx::Encoder* encoder, bgfx::ProgramHandle program)
+void BatchManager::draw(bgfx::ViewId view, bgfx::ProgramHandle program, 
+    bgfx::Encoder* encoder)
 {
     // Bind textures and set render state
     // Multithreaded drawing
@@ -61,7 +62,7 @@ void BatchManager::draw(bgfx::Encoder* encoder, bgfx::ProgramHandle program)
 
     for (auto& batch : batches)
     {
-        batch.draw(program, encoder);
+        batch.draw(view, program, encoder);
     }
 
     bgfx::end(encoder);

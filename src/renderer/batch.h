@@ -129,7 +129,8 @@ public:
     void remove_instance(size_t index);
 
     // Texture list should have been bound before
-    void draw(bgfx::ProgramHandle rendering_program, bgfx::Encoder* encoder);
+    void draw(bgfx::ViewId view, bgfx::ProgramHandle rendering_program, 
+        bgfx::Encoder* encoder);
 
     // Change/add a compute progam 
     void set_compute_program(const std::string& compute_path);

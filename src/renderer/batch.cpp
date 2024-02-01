@@ -280,7 +280,8 @@ void Batch::remove_instance(size_t index)
     draw_to_instance.erase(index);
 }
 
-void Batch::draw(bgfx::ProgramHandle rendering_program, bgfx::Encoder* encoder)
+void Batch::draw(bgfx::ViewId view, bgfx::ProgramHandle rendering_program, 
+    bgfx::Encoder* encoder)
 {
     update(encoder);
     if (!isValid(indirect_buffer)) return;

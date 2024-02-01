@@ -46,5 +46,6 @@ public:
         Buffer<uint8_t> index_buffer);
 
     // Draw all of the batches, with other info added to the encoder
-    void draw(bgfx::Encoder* encoder, bgfx::ProgramHandle program);
+    void draw(bgfx::ViewId view, bgfx::ProgramHandle rendering_program, 
+        bgfx::Encoder* encoder);
 };

@@ -170,7 +170,7 @@ InstancedModel::~InstancedModel()
     base->get_batch()->remove_instance(index);
 }
 
-void InstancedModel::upload()
+void InstancedModel::upload(BatchManager*)
 {
     if (base->get_batch() == nullptr) return; 
 

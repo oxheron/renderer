@@ -57,3 +57,11 @@ bgfx::ShaderHandle load_shader(const std::string& name)
 	if (data) delete[] data;
     return handle;
 }
+
+bgfx::ProgramHandle create_program(const std::string& vertex_path, 
+    const std::string& fragment_path)
+{
+    bgfx::ShaderHandle vsh = load_shader(vertex_path);
+    bgfx::ShaderHandle fsh = load_shader(fragment_path);
+    return bgfx::createProgram(vsh, fsh, true);
+}
