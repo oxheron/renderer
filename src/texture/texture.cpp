@@ -106,4 +106,5 @@ bgfx::Encoder* TextureAtlas::bind(bgfx::Encoder* encoder)
 {
     if (!encoder) encoder = bgfx::begin();
     encoder->setTexture(stage, texture_sampler, texture_handle);
+    return encoder;
 }
