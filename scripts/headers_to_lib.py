@@ -1,7 +1,7 @@
 import os
 
 directory = "src"
-output_path = "include"
+output_path = "include/renderer"
 
 def iterate(start, include):
     for filename in os.listdir(start):
