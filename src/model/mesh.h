@@ -66,7 +66,7 @@ class Model
 {
 public:
     // Puts this model into a batch
-    virtual void upload() = 0;
+    virtual void upload(BatchManager*) = 0;
 
     // Setters  
     virtual void set_modelmat(const glm::mat4& mat) = 0;
@@ -177,7 +177,7 @@ public:
     ~InstancedModel();
 
     // Puts this model into a batch
-    virtual void upload();
+    virtual void upload(BatchManager* batchmanager = nullptr);
 
     // Setters  
     virtual void set_modelmat(const glm::mat4& mat);
