@@ -57,7 +57,7 @@ bgfx::ShaderHandle load_shader(const std::string& name)
     return handle;
 }
 
-bgfx::ProgramHandle create_program(const std::string& vertex_path, 
+bgfx::ProgramHandle load_program(const std::string& vertex_path, 
     const std::string& fragment_path)
 {
     bgfx::ShaderHandle vsh = load_shader(vertex_path);
