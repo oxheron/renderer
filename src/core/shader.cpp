@@ -11,7 +11,6 @@ bgfx::ShaderHandle load_shader(const std::string& name)
     std::string type; 
     switch (bgfx::getRendererType())
 	{
-		case bgfx::RendererType::Direct3D9:
 		case bgfx::RendererType::Direct3D11:
 		case bgfx::RendererType::Direct3D12:
 			type = "s_5_0";
