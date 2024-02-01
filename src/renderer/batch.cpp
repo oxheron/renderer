@@ -289,7 +289,8 @@ void Batch::draw(bgfx::ViewId view, bgfx::ProgramHandle rendering_program,
     encoder->setVertexBuffer(0, vbh);
     encoder->setIndexBuffer(ibh);
     encoder->setInstanceDataBuffer(instances_buffer, 0, objs_data.size());
-    encoder->submit(view, rendering_program, indirect_buffer, 0, objs_data.size());
+    encoder->submit(view, rendering_program, indirect_buffer, (short) 0, (short) 
+        objs_data.size());
 }
 
 void Batch::set_compute_program(const std::string& compute_path)
