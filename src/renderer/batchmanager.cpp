@@ -15,6 +15,7 @@ BatchManager::BatchManager(bgfx::VertexLayout layout,
 {
     this->layout = layout;
     this->model_layout = model_layout;
+    this->compute_path = compute_path;
     this->batch_size = size;
     this->batches.resize(0);
 }
