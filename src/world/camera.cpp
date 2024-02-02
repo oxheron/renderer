@@ -1,5 +1,14 @@
 #include "camera.h"
 
+Camera()
+{
+    pitch = roll = yaw = 0;    
+}
+
+Camera(const glm::vec3& eye, const glm::vec3& front, const glm::vec3& up) 
+    : eye(eye), front(front), up(up), pitch(0), yaw(0), roll(0)
+{}
+
 void Camera::add_pitch(float angle)
 {
     pitch += angle;

@@ -21,8 +21,8 @@ private:
 
     glm::mat4 view;
 public:
-    Camera() {}
-    Camera(const glm::vec3& eye, const glm::vec3& front, const glm::vec3& up) : eye(eye), front(front), up(up) {}
+    Camera();
+    Camera(const glm::vec3& eye, const glm::vec3& front, const glm::vec3& up);
    
     void set_eye(const glm::vec3& eye) { this->eye = eye; }
     void update_front();
@@ -33,7 +33,7 @@ public:
     void movey(float amount);
     void movez(float amount);
 
-    glm::mat4 get_view() 
+    inline glm::mat4 get_view() 
     { 
         view = glm::lookAt(eye, eye + front, up); 
         return view;
