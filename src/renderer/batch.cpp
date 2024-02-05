@@ -33,7 +33,6 @@ Batch::Batch(size_t size, const std::string& compute_path,
 {
     compute_program = BGFX_INVALID_HANDLE;
     this->size = size;
-    set_compute_program(compute_path);
     this->vertex_layout = vertex_layout;
     this->model_layout = model_layout;
     vbh = bgfx::createDynamicVertexBuffer(size, vertex_layout, 
@@ -46,6 +45,7 @@ Batch::Batch(size_t size, const std::string& compute_path,
     instances_buffer = bgfx::createDynamicVertexBuffer((uint32_t) 0, 
         model_layout, BGFX_BUFFER_ALLOW_RESIZE);
     draw_params = bgfx::createUniform("draw_params", bgfx::UniformType::Vec4);
+    set_compute_program(compute_path);
     indirect_buffer = BGFX_INVALID_HANDLE;
     start_update = end_update = SIZE_MAX;
     refresh = false;
