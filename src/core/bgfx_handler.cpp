@@ -24,6 +24,7 @@ void BGFXHandler::init(const bgfx::PlatformData& pd, int width, int height, bx::
     bgfxInit.resolution.reset = BGFX_RESET_NONE;
     bgfxInit.platformData = pd;
     bgfxInit.allocator = allocator;
+    bgfxInit.type = type;
     bgfx::init(bgfxInit);
 }
 
