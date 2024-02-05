@@ -54,7 +54,7 @@ private:
 public:
     TextureAtlas();
     explicit TextureAtlas(uint16_t width, uint16_t height, 
-        uint16_t num_images = 100, const std::string& uniform_name = "texture", 
+        uint16_t num_images = 100, const std::string& uniform_name = "textures", 
         uint16_t stage = 0);
 
     ~TextureAtlas();
