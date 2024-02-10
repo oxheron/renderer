@@ -1,38 +1,11 @@
 #include "mesh.h"
 
-// external
-#include <nlohmann/json.hpp>
-
 // std
 #include <stdexcept>
 #include <tuple>
-#include <fstream>
 
-using json = nlohmann::json;
-
-void Mesh::load_data(const std::string& path)
-{   
-    vertices.clear();
-    indices.clear();
-
-    std::fstream file(path);
-    json data = json::parse(file); 
-
-    if (!data.contains("texture")) 
-        throw std::runtime_error("Invalid json file loaded");
-    this->texture_path = data["texture"].get<std::string>();
-
-    // Load the actual animation data
-    if (!data.contains("animation_frames")) 
-        throw std::runtime_error("Invalid json file loaded (no animation_frames)");
-    json frame_paths = data["animation_frames"];
-    for (auto& [key, value] : frame_paths.items())
-    {
-        load_animation(key, value);
-    }
-}
-
-void Mesh::load_animation(const std::string& identifier, const std::string& path)
+template <> 
+void Mesh<Vertex>::load_animation(const std::string& identifier, const std::string& path)
 {
     cgltf_data* data;
     cgltf_options options = cgltf_options();
@@ -43,24 +16,33 @@ void Mesh::load_animation(const std::string& identifier, const std::string& path
     // Validate buffer
     int do_more_error_checking = 0;
 
-    if (data->buffer_views[0].size / sizeof(glm::vec3) != data->buffer_views[1].size / sizeof(glm::vec2) 
-            || data->buffer_views[0].size / sizeof(glm::vec3) != data->buffer_views[2].size / sizeof(glm::vec3)) 
+    if (data->buffer_views[0].size / sizeof(glm::vec3) != 
+            data->buffer_views[1].size / sizeof(glm::vec2) 
+            || data->buffer_views[0].size / sizeof(glm::vec3) != 
+            data->buffer_views[2].size / sizeof(glm::vec3)) 
         throw std::runtime_error("Bad buffer data in gltf file");
 
     // Indices can either be 16 bit or 32 bit
-    uint32_t sizeof_index = data->accessors[3].component_type == cgltf_component_type_r_16u ? sizeof(uint16_t) : sizeof(uint32_t);
+    uint32_t sizeof_index = 
+        data->accessors[3].component_type == cgltf_component_type_r_16u ? 
+        sizeof(uint16_t) : sizeof(uint32_t);
 
     // Parse buffers into model
-    size_t vertices_size = (data->buffer_views[0].size + data->buffer_views[1].size + data->buffer_views[2].size) / sizeof(Vertex);
+    size_t vertices_size = 
+        (data->buffer_views[0].size + data->buffer_views[1].size + 
+         data->buffer_views[2].size) / sizeof(Vertex);
     size_t indices_size = data->buffer_views[3].size / sizeof_index;
 
     vertices.resize(vertices_size + vertices.size());
     indices.resize(indices_size + indices.size());
 
     // Copy vertex data
-    glm::vec3* position_pointer = (glm::vec3*) ((char*) data->buffers->data + data->buffer_views[0].offset);
-    glm::vec2* uv_pointer = (glm::vec2*) ((char*) data->buffers->data + data->buffer_views[1].offset);
-    glm::vec3* normal_pointer = (glm::vec3*) ((char*) data->buffers->data + data->buffer_views[2].offset);
+    glm::vec3* position_pointer = 
+        (glm::vec3*) ((char*) data->buffers->data + data->buffer_views[0].offset);
+    glm::vec2* uv_pointer = 
+        (glm::vec2*) ((char*) data->buffers->data + data->buffer_views[1].offset);
+    glm::vec3* normal_pointer = 
+        (glm::vec3*) ((char*) data->buffers->data + data->buffer_views[2].offset);
     
     for (size_t i = 0; i < data->buffer_views[0].size / sizeof(glm::vec3); i++)
     {
@@ -71,12 +53,65 @@ void Mesh::load_animation(const std::string& identifier, const std::string& path
 
     for (size_t i = 0; i < indices_size; i++)
     {
-        if (sizeof_index == sizeof(uint16_t)) indices[i] = ((uint16_t*) ((char*) data->buffers->data + data->buffer_views[3].offset))[i];
-        else indices[i] = ((uint32_t*) ((char*) data->buffers->data + data->buffer_views[3].offset))[i];
+        if (sizeof_index == sizeof(uint16_t)) indices[i] = 
+            ((uint16_t*) ((char*) data->buffers->data + 
+                data->buffer_views[3].offset))[i];
+        else indices[i] = 
+            ((uint32_t*) ((char*) data->buffers->data + 
+                data->buffer_views[3].offset))[i];
     }
 
-    animation_frames[identifier] = {indices.size() / sizeof(uint32_t) - indices_size / sizeof(uint32_t) - 1, indices_size / sizeof(uint32_t)};
+    animation_frames[identifier] = 
+        {indices.size() / sizeof(uint32_t) - indices_size / sizeof(uint32_t) - 1, 
+            indices_size / sizeof(uint32_t)};
 
+    cgltf_free(data);
+}
+
+template <>
+void Mesh<PosOnly>::load_animation(const std::string& identifier, const std::string& path)
+{
+    cgltf_data* data;
+    cgltf_options options = cgltf_options();
+    cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
+    options = cgltf_options();
+    cgltf_load_buffers(&options, data, path.c_str());
+
+    // LOl
+    int do_more_error_checking = 0;
+
+    size_t size = data->buffer_views[0].size / sizeof(glm::vec3);
+
+    uint32_t sizeof_index = 
+        data->accessors[3].component_type == cgltf_component_type_r_16u ? 
+        sizeof(uint16_t) : sizeof(uint32_t);
+
+    size_t indices_size = data->buffer_views[3].size / sizeof_index;
+
+    vertices.resize(size + vertices.size());
+    indices.resize(indices_size + indices.size());
+
+    glm::vec3* position_pointer = 
+        (glm::vec3*) ((char*) data->buffers->data + data->buffer_views[0].offset);
+
+    for (size_t i = 0; i < size; i++)
+    {
+        vertices[i].position = position_pointer[i];
+    }
+
+    for (size_t i = 0; i < indices_size; i++)
+    {
+        if (sizeof_index == sizeof(uint16_t)) indices[i] = 
+            ((uint16_t*) ((char*) data->buffers->data + 
+                data->buffer_views[3].offset))[i];
+        else indices[i] = 
+            ((uint32_t*) ((char*) data->buffers->data + 
+                data->buffer_views[3].offset))[i];
+    }
+
+    animation_frames[identifier] = 
+        {indices.size() / sizeof(uint32_t) - indices_size / sizeof(uint32_t) - 1, 
+            indices_size / sizeof(uint32_t)};
     cgltf_free(data);
 }
 
@@ -144,11 +179,6 @@ void BaseInstance::load_mesh(const std::string& path)
     mesh.load_data(path);
 }
 
-void BaseInstance::load_texture(TextureAtlas* atlas)
-{
-    if (!mesh.get_texture()) return;
-    this->texture_id = atlas->load_texture(this->mesh.get_texture().value());
-}
 
 void BaseInstance::upload(BatchManager* batchmanager)
 {
@@ -159,7 +189,13 @@ void BaseInstance::upload(BatchManager* batchmanager)
     this->instance_index = index;
 }
 
-InstancedModel::InstancedModel(BaseInstance* base)
+void TextureInstance::load_texture(TextureAtlas* atlas)
+{
+    if (!mesh.get_texture()) return;
+    this->texture_id = atlas->load_texture(this->mesh.get_texture().value());
+}
+
+InstancedModel::InstancedModel(TextureInstance* base)
 {
     this->base = base;
     this->index = 0;

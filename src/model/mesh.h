@@ -12,25 +12,32 @@
 #include <cgltf/cgltf.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <nlohmann/json.hpp>
 
 // std
 #include <optional>
 #include <string> 
 #include <vector>
+#include <fstream>
 
-class Vertex
+struct Vertex
 {
-public:
     glm::vec3 position; 
     glm::vec2 uv;
     glm::vec3 normal;
 };
 
+struct PosOnly
+{
+    glm::vec3 position;
+};
+
+template <typename T> 
 class Mesh
 {
 private:
     // Buffer data
-    std::vector<Vertex> vertices;
+    std::vector<T> vertices;
     std::vector<uint32_t> indices;
 
     // Texture path 
@@ -45,7 +52,27 @@ public:
     }
     
     // Loads the model from a json file
-    void load_data(const std::string& path);
+    void load_data(const std::string& path)
+    {   
+        vertices.clear();
+        indices.clear();
+
+        std::fstream file(path);
+        nlohmann::json data = nlohmann::json::parse(file); 
+
+        if (!data.contains("texture")) 
+            throw std::runtime_error("Invalid json file loaded");
+        this->texture_path = data["texture"].get<std::string>();
+
+        // Load the actual animation data
+        if (!data.contains("animation_frames")) 
+            throw std::runtime_error("Invalid json file loaded (no animation_frames)");
+        nlohmann::json frame_paths = data["animation_frames"];
+        for (auto& [key, value] : frame_paths.items())
+        {
+            load_animation(key, value);
+        }
+    }
 
     // Get the texture path to load into the batch manager
     std::optional<std::string> get_texture() { return texture_path; }
@@ -68,9 +95,6 @@ public:
     // Puts this model into a batch
     virtual void upload(BatchManager*) = 0;
 
-    // Setters  
-    virtual void set_modelmat(const glm::mat4& mat) = 0;
-
     // Getters 
     virtual Buffer<uint8_t> get_model_buffer() = 0;
     virtual Buffer<uint8_t> get_vertex_buffer() = 0;
@@ -90,7 +114,7 @@ private:
     size_t index = SIZE_MAX;
     
     // The mesh that holds all of the data (vertices, indices, etc) for this model
-    Mesh mesh;
+    Mesh<Vertex> mesh;
 
     // Texture id  
     uint32_t texture_id;
@@ -125,7 +149,7 @@ public:
 
 class BaseInstance
 {
-private:
+protected:
     // The batch and batchmanager for this instance, but not the index
     Batch* batch = nullptr;
 
@@ -133,7 +157,7 @@ private:
     size_t instance_index;
 
     // All of the mesh data
-    Mesh mesh;
+    Mesh<Vertex> mesh;
 
     // Texture id
     uint32_t texture_id;
@@ -143,9 +167,6 @@ private:
     
     // Loads the model for this instance
     void load_mesh(const std::string& path);
-    
-    // Loads the texture for this instance
-    void load_texture(TextureAtlas* atlas);
 
     // Uploads the instance data to the batch
     void upload(BatchManager* batchmanager);
@@ -158,10 +179,23 @@ private:
     size_t get_index() { return instance_index; }
 };
 
+class TextureInstance : public BaseInstance
+{
+private:
+    uint32_t texture_id;
+
+public:
+    // Loads the texture for this instance
+    void load_texture(TextureAtlas* atlas);
+
+    // Gets the texture
+    uint32_t get_texture_id() { return texture_id; }
+};
+
 class InstancedModel : public Model
 {
 private:
-    BaseInstance* base;
+    TextureInstance* base;
 
     // The model index into the batch for this model
     size_t index;
@@ -173,7 +207,7 @@ private:
     // ie model matrix, texture id, etc.
     std::vector<uint8_t> model_buffer;
 public:
-    InstancedModel(BaseInstance* base);
+    InstancedModel(TextureInstance* base);
     ~InstancedModel();
 
     // Puts this model into a batch
