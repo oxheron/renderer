@@ -15,11 +15,6 @@ bgfx::VertexLayout pos_only_layout()
     return layout;
 }
 
-bgfx::VertexLayout objs_info_layout(uint8_t count)
-{
-    static bgfx::Attrib::Enum texcoords[] = 
-}
-
 bgfx::VertexLayout pos_tex_norm()
 {
     static bgfx::VertexLayout layout;
