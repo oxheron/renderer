@@ -17,7 +17,7 @@ bgfx::VertexLayout pos_tex_norm()
     return layout;
 }
 
-bgfx::VertexLayout model_tex_instance(uint8_t count)
+bgfx::VertexLayout objs_info_layout(uint8_t count)
 {
     static auto texcoords = 
     {
@@ -35,7 +35,7 @@ bgfx::VertexLayout model_tex_instance(uint8_t count)
 
     for (size_t i = 0; i < count; i++)
     {
-        current_layout
+        current_layout =
             current_layout.add(texcoords[i], 4, bgfx::AttribType::Float);
     }
     current_layout.end();
