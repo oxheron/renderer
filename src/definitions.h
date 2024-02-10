@@ -19,7 +19,7 @@ bgfx::VertexLayout pos_tex_norm()
 
 bgfx::VertexLayout objs_info_layout(uint8_t count)
 {
-    static auto texcoords = 
+    static bgfx::Attrib::Enum texcoords[] = 
     {
         bgfx::Attrib::TexCoord0,
         bgfx::Attrib::TexCoord1,
