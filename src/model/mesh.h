@@ -10,6 +10,7 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include <cgltf/cgltf.h>
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <nlohmann/json.hpp>
@@ -109,21 +110,15 @@ public:
 class StandardModel : public Model
 {
 private:
-    // The batch that this model is in, as well as the index pointer for that batch
     Batch* batch = nullptr;
     size_t index = SIZE_MAX;
     
-    // The mesh that holds all of the data (vertices, indices, etc) for this model
     Mesh<Vertex> mesh;
 
-    // Texture id  
     uint32_t texture_id;
 
-    // Model matrix 
     glm::mat4 modelmat = glm::mat4(1.0f);
 
-    // A buffer that combines all of the overall data for this model
-    // ie model matrix, texture id, etc.
     std::vector<uint8_t> model_buffer;
 public:
     StandardModel();
@@ -147,31 +142,36 @@ public:
     size_t get_index() { return index; }
 };
 
+template <typename T>
 class BaseInstance
 {
 protected:
-    // The batch and batchmanager for this instance, but not the index
     Batch* batch = nullptr;
 
-    // An index into the allocation data of the batch 
-    size_t instance_index;
+    // Where vertices & indicies are in the batch
+    size_t instance_index = SIZE_MAX;
 
-    // All of the mesh data
-    Mesh<Vertex> mesh;
+    Mesh<T> mesh;
 
-    // Texture id
     uint32_t texture_id;
  public:  
-    BaseInstance();
-    ~BaseInstance();
+    BaseInstance() = default;
+    ~BaseInstance() 
+    {
+        if (batch) batch->remove_instance_data(instance_index);
+    }
     
-    // Loads the model for this instance
-    void load_mesh(const std::string& path);
+    void load_mesh(const std::string& path) { mesh.load_data(path); }
 
-    // Uploads the instance data to the batch
-    void upload(BatchManager* batchmanager);
+    void upload(BatchManager* batchmanager) 
+    {
+        if (this->mesh.get_vertices().size() == 0) return;
+        auto [batch, index] = batchmanager->add_instance_data(this->get_vertex_buffer(), 
+            this->get_index_buffer());
+        this->batch = batch;
+        this->instance_index = index;
+    }
 
-    // Getters 
     Batch* get_batch() { return batch; }
     uint32_t get_texture_id() { return texture_id; }
     Buffer<uint8_t> get_vertex_buffer() { return mesh.get_vertices(); } 
@@ -179,16 +179,14 @@ protected:
     size_t get_index() { return instance_index; }
 };
 
-class TextureInstance : public BaseInstance
+class TextureInstance : public BaseInstance<Vertex>
 {
 private:
     uint32_t texture_id;
 
 public:
-    // Loads the texture for this instance
     void load_texture(TextureAtlas* atlas);
 
-    // Gets the texture
     uint32_t get_texture_id() { return texture_id; }
 };
 
@@ -197,8 +195,7 @@ class InstancedModel : public Model
 private:
     TextureInstance* base;
 
-    // The model index into the batch for this model
-    size_t index;
+    size_t obj_index = SIZE_MAX;
 
     // Model matrix 
     glm::mat4 modelmat = glm::mat4(1.0f);

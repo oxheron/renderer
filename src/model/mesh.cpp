@@ -164,31 +164,6 @@ Buffer<uint8_t> StandardModel::get_model_buffer()
     return Buffer(model_buffer.data(), model_buffer.size());
 }
 
-BaseInstance::BaseInstance()
-{
-
-}
-
-BaseInstance::~BaseInstance()
-{
-    if (batch) batch->remove_instance_data(instance_index);
-}
-
-void BaseInstance::load_mesh(const std::string& path)
-{
-    mesh.load_data(path);
-}
-
-
-void BaseInstance::upload(BatchManager* batchmanager)
-{
-    if (this->mesh.get_vertices().size() == 0) return;
-    auto [batch, index] = batchmanager->add_instance_data(this->get_vertex_buffer(), 
-        this->get_index_buffer());
-    this->batch = batch;
-    this->instance_index = index;
-}
-
 void TextureInstance::load_texture(TextureAtlas* atlas)
 {
     if (!mesh.get_texture()) return;
@@ -198,25 +173,24 @@ void TextureInstance::load_texture(TextureAtlas* atlas)
 InstancedModel::InstancedModel(TextureInstance* base)
 {
     this->base = base;
-    this->index = 0;
 }
 
 InstancedModel::~InstancedModel()
 {
-    base->get_batch()->remove_instance(index);
+    base->get_batch()->remove_instance(obj_index);
 }
 
 void InstancedModel::upload(BatchManager*)
 {
     if (base->get_batch() == nullptr) return; 
 
-    index = base->get_batch()->add_instance(this, base->get_index()); 
+    obj_index = base->get_batch()->add_instance(this, base->get_index()); 
 }
 
 void InstancedModel::set_modelmat(const glm::mat4& mat)
 {
     modelmat = mat;
-    if (base->get_batch()) base->get_batch()->edit_model_data(this, index);
+    if (base->get_batch()) base->get_batch()->edit_model_data(this, obj_index);
 }
 
 Buffer<uint8_t> InstancedModel::get_model_buffer()
