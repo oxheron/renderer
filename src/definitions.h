@@ -17,20 +17,28 @@ bgfx::VertexLayout pos_tex_norm()
     return layout;
 }
 
-bgfx::VertexLayout model_tex_instance()
+bgfx::VertexLayout model_tex_instance(uint8_t count)
 {
-    static bgfx::VertexLayout layout;
-    static bool initialized = false;
-    if (!initialized)
+    static auto texcoords = 
     {
-       layout.begin() 
-            .add(bgfx::Attrib::TexCoord0, 4, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord1, 4, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord2, 4, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord3, 4, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord4, 4, bgfx::AttribType::Float)
-            .end();   
-    }
+        bgfx::Attrib::TexCoord0,
+        bgfx::Attrib::TexCoord1,
+        bgfx::Attrib::TexCoord2,
+        bgfx::Attrib::TexCoord3,
+        bgfx::Attrib::TexCoord4,
+        bgfx::Attrib::TexCoord5,
+        bgfx::Attrib::TexCoord6,
+    };
 
-    return layout;
+    bgfx::VertexLayout layout;
+    auto current_layout = layout.begin();
+
+    for (size_t i = 0; i < count; i++)
+    {
+        current_layout
+            current_layout.add(texcoords[i], 4, bgfx::AttribType::Float);
+    }
+    current_layout.end();
+
+    return current_layout;
 }
