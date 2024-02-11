@@ -83,10 +83,10 @@ void Mesh<PosOnly>::load_animation(const std::string& identifier, const std::str
     size_t size = data->buffer_views[0].size / sizeof(glm::vec3);
 
     uint32_t sizeof_index = 
-        data->accessors[3].component_type == cgltf_component_type_r_16u ? 
+        data->accessors[1].component_type == cgltf_component_type_r_16u ? 
         sizeof(uint16_t) : sizeof(uint32_t);
 
-    size_t indices_size = data->buffer_views[3].size / sizeof_index;
+    size_t indices_size = data->buffer_views[1].size / sizeof_index;
 
     vertices.resize(size + vertices.size());
     indices.resize(indices_size + indices.size());
@@ -103,10 +103,10 @@ void Mesh<PosOnly>::load_animation(const std::string& identifier, const std::str
     {
         if (sizeof_index == sizeof(uint16_t)) indices[i] = 
             ((uint16_t*) ((char*) data->buffers->data + 
-                data->buffer_views[3].offset))[i];
+                data->buffer_views[1].offset))[i];
         else indices[i] = 
             ((uint32_t*) ((char*) data->buffers->data + 
-                data->buffer_views[3].offset))[i];
+                data->buffer_views[1].offset))[i];
     }
 
     animation_frames[identifier] = 
