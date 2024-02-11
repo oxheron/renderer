@@ -152,8 +152,6 @@ protected:
     size_t instance_index = SIZE_MAX;
 
     Mesh<T> mesh;
-
-    uint32_t texture_id;
  public:  
     BaseInstance() = default;
     ~BaseInstance() 
@@ -173,7 +171,6 @@ protected:
     }
 
     Batch* get_batch() { return batch; }
-    uint32_t get_texture_id() { return texture_id; }
     Buffer<uint8_t> get_vertex_buffer() { return mesh.get_vertices(); } 
     Buffer<uint8_t> get_index_buffer() { return mesh.get_indices(); } 
     size_t get_index() { return instance_index; }
