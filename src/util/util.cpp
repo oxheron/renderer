@@ -43,8 +43,3 @@ void write_file(const std::string& filepath, const std::string& data)
     file.write(data.data(), data.size());
     file.close();
 }
-
-void junk()
-{
-    throw std::runtime_error("Stuff");
-}
