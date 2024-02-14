@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <nlohmann/json.hpp>
+#include <include/robin_hood.h>
 
 // std
 #include <optional>
@@ -45,7 +46,8 @@ private:
     std::optional<std::string> texture_path;
 
     // Animation data
-    std::unordered_map<std::string, std::pair<size_t, size_t>> animation_frames;
+    robin_hood::unordered_map<std::string, std::pair<size_t, size_t>> 
+        animation_frames;
 public:
     Mesh() 
     {

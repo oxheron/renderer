@@ -5,12 +5,12 @@
 
 // external
 #include <bgfx/bgfx.h>
+#include <include/robin_hood.h>
 
 // std
 #include <string>
 #include <vector>
 #include <utility>
-#include <unordered_map>
 #include <cstddef>
 
 // Forward declaration of Model
@@ -90,9 +90,9 @@ private:
     // Instance indexes contain the indexes into the buffers (such as start vertex etc.)
     // Draw indexes contain the indexes into pretty much everything else
     // Also the current last index into the map
-    std::unordered_map<size_t, size_t> instance_indexes;
-    std::unordered_map<size_t, size_t> draw_indexes;
-    std::unordered_map<size_t, size_t> draw_to_instance;
+    robin_hood::unordered_map<size_t, size_t> instance_indexes;
+    robin_hood::unordered_map<size_t, size_t> draw_indexes;
+    robin_hood::unordered_map<size_t, size_t> draw_to_instance;
     size_t current_index = 0;
 
     // A uniform to send the draw parameters to the compute shader

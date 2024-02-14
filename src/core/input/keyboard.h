@@ -2,7 +2,7 @@
 
 // external 
 #include <GLFW/glfw3.h>
-#include <unordered_map>
+#include <include/robin_hood.h>
 
 struct Key
 {
@@ -49,7 +49,7 @@ struct Key
 class Keyboard
 {
 private:
-    std::unordered_map<size_t, Key> registered_keys;
+    robin_hood::unordered_map<size_t, Key> registered_keys;
 public:
     void register_key(size_t key)
     {

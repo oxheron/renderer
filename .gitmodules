@@ -19,3 +19,6 @@
 [submodule "lib/glfw"]
 	path = lib/glfw
 	url = https://github.com/glfw/glfw
+[submodule "lib/robin-hood-hashing"]
+	path = lib/robin-hood-hashing
+	url = https://github.com/martinus/robin-hood-hashing

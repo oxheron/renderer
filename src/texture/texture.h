@@ -3,10 +3,10 @@
 // external
 #include <bimg/bimg.h>
 #include <bgfx/bgfx.h>
+#include <include/robin_hood.h>
 
 // std
 #include <string>
-#include <unordered_map>
 
 class Texture
 {
@@ -38,7 +38,7 @@ private:
     // Bgfx texture stuff, for an atlas
     bgfx::TextureHandle texture_handle;
     bgfx::UniformHandle texture_sampler;
-    std::unordered_map<std::string, uint32_t> mapped_paths;
+    robin_hood::unordered_map<std::string, uint32_t> mapped_paths;
 
     // Image widths and heights
     uint16_t width;
