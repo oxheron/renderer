@@ -2,6 +2,7 @@
 
 // std
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 std::string read_file(const std::string& filepath)
@@ -41,4 +42,9 @@ void write_file(const std::string& filepath, const std::string& data)
     std::ofstream file(filepath, std::ios_base::trunc);
     file.write(data.data(), data.size());
     file.close();
+}
+
+void junk()
+{
+    throw std::runtime_error("Stuff");
 }
