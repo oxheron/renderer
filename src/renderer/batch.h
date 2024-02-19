@@ -5,7 +5,7 @@
 
 // external
 #include <bgfx/bgfx.h>
-#include <include/robin_hood.h>
+#include <robin-hood/robin-hood.h>
 
 // std
 #include <string>

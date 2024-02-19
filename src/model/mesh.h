@@ -14,7 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <nlohmann/json.hpp>
-#include <include/robin_hood.h>
+#include <robin-hood/robin-hood.h>
 
 // std
 #include <optional>
