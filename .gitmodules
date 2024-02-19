@@ -1,9 +1,6 @@
 [submodule "lib/bx"]
 	path = lib/bx
 	url = https://github.com/bkaradzic/bx
-[submodule "lib/bgfx"]
-	path = lib/bgfx
-	url = https://github.com/bkaradzic/bgfx
 [submodule "lib/bimg"]
 	path = lib/bimg
 	url = https://github.com/bkaradzic/bimg
@@ -22,3 +19,6 @@
 [submodule "lib/robin-hood-hashing"]
 	path = lib/robin-hood-hashing
 	url = https://github.com/martinus/robin-hood-hashing
+[submodule "lib/bgfx"]
+	path = lib/bgfx
+	url = https://github.com/oxheron/bgfx
