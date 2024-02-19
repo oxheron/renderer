@@ -328,7 +328,7 @@ void Batch::update(bgfx::Encoder* encoder)
         if (isValid(indirect_buffer)) bgfx::destroy(indirect_buffer);
         indirect_buffer = bgfx::createIndirectBuffer(objs_data.size());
         float draw_data[4] = {float(objs_data.size()), 
-            float(bgfx::getDynamicIndexBufferOffset(ibh) / (uint32_t)), 0, 0};
+            float(bgfx::getDynamicIndexBufferOffset(ibh) / sizeof(uint32_t)), 0, 0};
         encoder->setUniform(draw_params, draw_data);
         encoder->setBuffer(0, objs_buffer, bgfx::Access::Read);
         encoder->setBuffer(1, indirect_buffer, bgfx::Access::Write);
